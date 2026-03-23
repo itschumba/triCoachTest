@@ -543,6 +543,8 @@ function mkGoals(ph,pi,il){
 // ═══ ONBOARDING CHAT ══════════════════════════════════════════════
 const OB_SYSTEM=`You are TriCoach, an AI triathlon coach setting up a user's personalised training plan. Be warm, encouraging, and concise (2-3 sentences per message max).
 
+Today's date is ${new Date().toISOString().slice(0,10)}. Always use this as the reference for "now", "today", and when calculating weeks between dates.
+
 Gather these 8 parameters through natural conversation:
 1. name (first name)
 2. raceName (event name)
