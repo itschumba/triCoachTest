@@ -545,6 +545,12 @@ const OB_SYSTEM=`You are TriCoach, an AI triathlon coach setting up a user's per
 
 Today's date is ${new Date().toISOString().slice(0,10)}. Always use this as the reference for "now", "today", and when calculating weeks between dates.
 
+RACE LOOKUP RULE — this is important:
+When the user mentions a race name, immediately use your web search tool to look it up. Search for the official race page, distance, course profile, and date. Then:
+- If you find it: confirm the details back to the user (distance, official date, location) and use them to set the plan parameters. Do not ask the user for info you already found.
+- If you find nothing or results are ambiguous: explicitly tell the user "I couldn't find reliable information about [race name] online, so I'll rely entirely on what you tell me — please confirm the distance and date."
+Never silently infer race details (e.g. don't assume Ironman Durban in June is a 70.3 without verifying). Always be transparent about what you found vs what you're assuming.
+
 Gather these 8 parameters through natural conversation:
 1. name (first name)
 2. raceName (event name)
@@ -606,7 +612,7 @@ async function obSend(){
   addObTyping();
   try{
     const res=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({max_tokens:400,system:OB_SYSTEM,messages:obHistory})});
+      body:JSON.stringify({max_tokens:400,use_search:true,system:OB_SYSTEM,messages:obHistory})});
     const data=await res.json();
     removeObTyping();
     const raw=data.content?.map(b=>b.text||'').join('')||'Sorry, connection issue. Please try again.';
