@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TriCoach">
+<meta name="theme-color" content="#0a0e1a">
+<title>TriCoach — AI Triathlon Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;--surface:#0f172a;--surface2:#131c2e;--border:#1e293b;
+  --text:#e2e8f0;--muted:#64748b;--subtle:#94a3b8;
+  --base:#38bdf8;--build:#fb923c;--peak:#f43f5e;--taper:#34d399;
+  --swim:#7dd3fc;--swim-bg:#0c4a6e;--bike:#fdba74;--bike-bg:#431407;
+  --run:#86efac;--run-bg:#14532d;--brick:#d8b4fe;--brick-bg:#3b0764;
+  --rest:#94a3b8;--rest-bg:#1e293b;--str:#d6d3d1;--str-bg:#1c1917;
+  --done:#34d399;--done-bg:#052e16;--coach:#a78bfa;--coach-bg:#2e1065;
+  --nav-h:60px;--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow:hidden;}
+
+/* ── ONBOARDING ─────────────────────────────────── */
+#onboarding{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;padding-top:var(--safe-top);padding-bottom:var(--safe-bot);}
+#onboarding.hidden{display:none;}
+.ob-screen{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.ob-screen.hidden{display:none!important;}
+
+#ob-welcome{overflow-y:auto;padding:32px 24px 24px;}
+.ob-logo{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--base);margin-bottom:28px;}
+.ob-hero{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:900;line-height:.92;text-transform:uppercase;color:#f8fafc;margin-bottom:8px;}
+.ob-hero em{color:var(--base);font-style:normal;display:block;}
+.ob-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px;}
+.ob-feats{display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.ob-feat{display:flex;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;align-items:flex-start;}
+.ob-feat-icon{font-size:20px;flex-shrink:0;}
+.ob-feat-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;text-transform:uppercase;color:#f1f5f9;margin-bottom:2px;}
+.ob-feat-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+.ob-start-btn{width:100%;padding:16px;border-radius:14px;border:none;background:var(--base);color:#0a0e1a;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:all .15s;}
+.ob-start-btn:active{transform:scale(.97);}
+
+#ob-chat{border-top:0;}
+.ob-chat-hdr{flex-shrink:0;padding:14px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#0f172a,#1e1b4b);display:flex;align-items:center;gap:12px;}
+.ob-chat-hdr-avatar{width:36px;height:36px;border-radius:10px;background:#4c1d95;border:1px solid #7c3aed;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.ob-chat-hdr-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#c4b5fd;}
+.ob-chat-hdr-sub{font-size:10px;color:#7c3aed;}
+#ob-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.ob-msg{display:flex;flex-direction:column;gap:3px;animation:fadeIn .2s ease;}
+.ob-msg.ai{align-items:flex-start;}.ob-msg.user{align-items:flex-end;}
+.ob-bubble{max-width:87%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.65;}
+.ob-msg.ai .ob-bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px;color:#cbd5e1;}
+.ob-msg.user .ob-bubble{background:#1e3a5f;border:1px solid #1e4976;border-bottom-right-radius:4px;color:#e2e8f0;}
+.ob-bubble-time{font-size:9px;color:var(--muted);}
+.ob-typing{background:var(--surface);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px;padding:10px 14px;display:flex;gap:5px;align-items:center;}
+.ob-dot{width:6px;height:6px;background:#475569;border-radius:50%;animation:typingAnim 1.2s infinite;}
+.ob-dot:nth-child(2){animation-delay:.2s;}.ob-dot:nth-child(3){animation-delay:.4s;}
+.ob-input-area{flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + var(--safe-bot));border-top:1px solid var(--border);background:var(--bg);display:flex;gap:8px;align-items:flex-end;}
+.ob-textarea{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:13px;color:var(--text);font-family:'Barlow',sans-serif;resize:none;min-height:42px;max-height:120px;outline:none;line-height:1.4;}
+.ob-textarea:focus{border-color:var(--base);}
+.ob-textarea::placeholder{color:var(--muted);}
+.ob-send{width:42px;height:42px;border-radius:10px;background:var(--base);border:none;cursor:pointer;font-size:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.ob-send:active{transform:scale(.93);}
+.ob-send:disabled{background:#1e293b;opacity:.4;}
+
+#ob-building{align-items:center;justify-content:center;text-align:center;padding:32px;}
+.ob-build-icon{font-size:56px;margin-bottom:20px;animation:pulse 1.2s ease-in-out infinite;}
+.ob-build-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;color:var(--base);text-transform:uppercase;margin-bottom:8px;}
+.ob-build-sub{font-size:13px;color:var(--muted);line-height:1.6;}
+.ob-build-dots{margin-top:24px;display:flex;gap:8px;justify-content:center;}
+.ob-build-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s;}
+.ob-build-dot.active{background:var(--base);}
+
+/* ── MAIN APP ───────────────────────────────────── */
+#app{display:none;flex-direction:column;height:100%;height:100dvh;}
+#app.visible{display:flex;}
+#header{flex-shrink:0;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%);border-bottom:1px solid var(--border);padding:14px 16px 11px;padding-top:calc(14px + var(--safe-top));}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-start;}
+.hdr-eye{font-size:9px;letter-spacing:.14em;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:2px;}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;line-height:1;text-transform:uppercase;color:#f8fafc;}
+.hdr-title span{color:var(--base);}
+.hdr-date{font-size:10px;color:var(--muted);margin-top:3px;}
+.hdr-date em{color:var(--peak);font-style:normal;font-weight:700;}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.goal-lbl{font-size:9px;letter-spacing:.12em;color:var(--muted);font-weight:600;text-transform:uppercase;}
+.goal-val{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;color:var(--taper);line-height:1;}
+.settings-btn{background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:2px 0;}
+.phase-strip{display:flex;gap:4px;margin-top:9px;}
+.phase-pill{flex:1;background:var(--surface);border-radius:5px;padding:4px 6px;}
+.phase-pill-name{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;text-transform:uppercase;}
+.phase-pill-wks{font-size:8px;color:var(--muted);}
+#content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + var(--safe-bot) + 12px);}
+#nav{flex-shrink:0;position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-bot));padding-bottom:var(--safe-bot);background:#0d1220;border-top:1px solid var(--border);display:flex;z-index:100;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;cursor:pointer;padding:0;}
+.nav-icon{font-size:17px;line-height:1;}
+.nav-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.nav-btn.active .nav-label,.nav-btn.active .nav-icon{color:var(--base);}
+.nav-btn:not(.active) .nav-label,.nav-btn:not(.active) .nav-icon{color:var(--muted);}
+
+.wk-scroller-wrap{padding:12px 16px 0;}
+.wk-scroller-lbl{font-size:9px;letter-spacing:.14em;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:8px;}
+.wk-scroller{display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;}
+.wk-scroller::-webkit-scrollbar{display:none;}
+.wk-btn-wrap{position:relative;flex-shrink:0;}
+.now-badge{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:6px;font-weight:800;color:#fff;background:var(--peak);border-radius:3px;padding:1px 4px;white-space:nowrap;z-index:1;pointer-events:none;}
+.wk-btn{width:40px;height:40px;border-radius:8px;background:var(--surface);border:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;position:relative;}
+.wk-tick{position:absolute;bottom:2px;right:2px;width:7px;height:7px;background:var(--done);border-radius:50%;}
+.wk-card{margin:9px 16px 0;border-radius:11px;padding:12px 13px;border:1px solid;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.wk-card-ph{font-size:9px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;}
+.wk-card-date{font-size:9px;color:var(--muted);background:var(--surface);padding:2px 6px;border-radius:4px;border:1px solid var(--border);display:inline-block;margin-top:4px;}
+.wk-card-focus{font-size:12px;color:#cbd5e1;margin-top:4px;line-height:1.4;max-width:210px;}
+.wk-card-r{text-align:right;flex-shrink:0;}
+.wk-card-ll{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.wk-card-lv{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;line-height:1.1;}
+.wk-prog-bar{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden;}
+.wk-prog-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+
+.days-list{padding:9px 16px 0;display:flex;flex-direction:column;gap:7px;}
+.day-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s;}
+.day-card.all-done{border-color:#34d39940;}
+.day-hdr{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.day-name{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;color:#334155;letter-spacing:.1em;text-transform:uppercase;min-width:28px;}
+.s-tags{display:flex;gap:4px;flex-wrap:wrap;flex:1;}
+.s-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.day-done-badge{font-size:9px;color:var(--done);font-weight:700;flex-shrink:0;}
+.day-body{padding:8px 12px;display:flex;flex-direction:column;gap:6px;}
+.s-row{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .15s;user-select:none;-webkit-user-select:none;}
+.s-row:active{transform:scale(.98);}
+.s-row.done{background:var(--done-bg);border-color:#34d39930;}
+.s-row:not(.done){background:var(--surface2);}
+.s-chk{width:21px;height:21px;border-radius:6px;border:1.5px solid;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;margin-top:1px;}
+.s-row.done .s-chk{background:var(--done);border-color:var(--done);}
+.s-row:not(.done) .s-chk{border-color:var(--border);}
+.s-info{flex:1;}
+.s-type{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.s-detail{font-size:11px;color:var(--subtle);line-height:1.5;}
+.s-row.done .s-detail{color:var(--muted);text-decoration:line-through;text-decoration-color:#334155;}
+.s-row.done .s-type{color:var(--done);}
+.s-sub-btn{margin-left:auto;flex-shrink:0;font-size:9px;font-weight:700;color:var(--coach);background:var(--coach-bg);border:none;border-radius:6px;padding:3px 7px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;white-space:nowrap;}
+
+.goals-list{padding:9px 16px 0;display:flex;flex-direction:column;gap:9px;}
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.goal-card-hdr{padding:9px 13px;display:flex;align-items:center;gap:8px;}
+.goal-card-hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;}
+.goal-card-body{padding:11px 13px;font-size:12px;color:#cbd5e1;line-height:1.65;}
+
+.ready-wrap{padding:11px 16px 0;display:flex;flex-direction:column;gap:11px;}
+.dial-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;}
+.dial-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:12px;}
+.dial-pct{font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:900;text-align:center;line-height:1;margin-top:4px;}
+.dial-rlbl{font-size:11px;text-align:center;margin-top:3px;}
+.dial-days{margin-top:8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-align:center;}
+.dial-days span{color:var(--peak);}
+.stat-row{display:flex;gap:7px;}
+.stat-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 9px;text-align:center;}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;}
+.stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+.disc-card,.phase-prog-card,.log-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:13px;}
+.disc-title,.phase-prog-title,.log-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:11px;}
+.disc-row{display:flex;align-items:center;gap:9px;margin-bottom:11px;}
+.disc-row:last-child{margin-bottom:0;}
+.disc-icon{font-size:16px;width:22px;flex-shrink:0;}
+.disc-info{flex:1;}
+.disc-name{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;display:flex;justify-content:space-between;margin-bottom:4px;}
+.disc-bar-bg{height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.disc-bar-fill{height:100%;border-radius:4px;transition:width .6s ease;}
+.phase-prog-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.phase-prog-row:last-child{margin-bottom:0;}
+.phase-prog-name{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;min-width:44px;}
+.phase-prog-bg{flex:1;height:9px;background:var(--border);border-radius:5px;overflow:hidden;}
+.phase-prog-fill{height:100%;border-radius:5px;transition:width .6s ease;}
+.phase-prog-pct{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;min-width:30px;text-align:right;}
+.log-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
+.log-cell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:800;cursor:pointer;}
+
+.coach-intro{padding:12px 16px;flex-shrink:0;}
+.coach-intro-card{background:linear-gradient(135deg,#2e1065,#1e1b4b);border:1px solid #7c3aed40;border-radius:12px;padding:14px;}
+.coach-intro-hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.coach-avatar{width:36px;height:36px;border-radius:10px;background:#4c1d95;border:1px solid #7c3aed;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.coach-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#c4b5fd;}
+.coach-sub{font-size:10px;color:#7c3aed;}
+.coach-intro-txt{font-size:12px;color:#c4b5fd;line-height:1.6;}
+.quick-prompts{padding:0 16px 8px;flex-shrink:0;}
+.quick-lbl{font-size:9px;letter-spacing:.12em;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px;}
+.quick-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+.quick-row::-webkit-scrollbar{display:none;}
+.quick-chip{flex-shrink:0;background:var(--coach-bg);border:1px solid #4c1d95;border-radius:20px;padding:5px 11px;font-size:11px;font-weight:600;color:#c4b5fd;cursor:pointer;white-space:nowrap;font-family:'Barlow',sans-serif;}
+.chat-msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 8px;display:flex;flex-direction:column;gap:10px;}
+.msg{display:flex;flex-direction:column;gap:3px;animation:fadeIn .2s ease;}
+.msg.user{align-items:flex-end;}.msg.ai{align-items:flex-start;}
+.msg-bubble{max-width:88%;padding:10px 13px;border-radius:14px;font-size:12px;line-height:1.6;}
+.msg.user .msg-bubble{background:#1e3a5f;border:1px solid #1e4976;border-bottom-right-radius:4px;color:#e2e8f0;}
+.msg.ai .msg-bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px;color:#cbd5e1;}
+.msg-time{font-size:9px;color:var(--muted);}
+.mark-done-btn{margin-top:8px;background:var(--done-bg);border:1px solid var(--done);border-radius:10px;padding:10px 13px;display:flex;align-items:center;gap:8px;cursor:pointer;}
+.mark-done-txt{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:var(--done);text-transform:uppercase;letter-spacing:.06em;}
+.mark-done-sub{font-size:10px;color:#4ade80;margin-top:1px;}
+.typing-bub{background:var(--surface);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px;padding:10px 14px;display:flex;gap:5px;align-items:center;}
+.t-dot{width:6px;height:6px;background:#475569;border-radius:50%;animation:typingAnim 1.2s infinite;}
+.t-dot:nth-child(2){animation-delay:.2s;}.t-dot:nth-child(3){animation-delay:.4s;}
+.chat-input-wrap{flex-shrink:0;padding:8px 16px;padding-bottom:calc(8px + var(--safe-bot));background:var(--bg);border-top:1px solid var(--border);}
+.chat-input-row{display:flex;gap:8px;align-items:flex-end;}
+.chat-ta{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 13px;font-size:13px;color:var(--text);font-family:'Barlow',sans-serif;resize:none;min-height:42px;max-height:100px;outline:none;line-height:1.4;}
+.chat-ta::placeholder{color:var(--muted);}
+.chat-send{width:40px;height:40px;border-radius:10px;background:var(--base);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.chat-send:disabled{background:#1e293b;opacity:.5;}
+
+.guide-wrap{padding:12px 16px 0;display:flex;flex-direction:column;gap:10px;}
+.guide-sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.guide-sec-hdr{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.guide-sec-icon{font-size:18px;}
+.guide-sec-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;color:#f1f5f9;}
+.guide-items{padding:4px 0;}
+.guide-item{display:flex;gap:12px;padding:10px 14px;border-bottom:1px solid #1e293b80;}
+.guide-item:last-child{border-bottom:none;}
+.guide-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.guide-txt{font-size:12px;color:#cbd5e1;line-height:1.55;}
+.guide-txt strong{color:#f1f5f9;font-weight:600;}
+.gear-grid{padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.gear-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:7px;font-size:11px;color:#cbd5e1;}
+.bkdn-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.bkdn-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;color:var(--taper);margin-bottom:11px;}
+.bkdn-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.bkdn-row:last-child{border-bottom:none;}
+.bkdn-leg{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;}
+.bkdn-r{text-align:right;}
+.bkdn-t{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#f1f5f9;}
+.bkdn-p{font-size:9px;color:var(--muted);}
+
+#settingsModal{position:fixed;inset:0;z-index:500;background:#0a0e1aee;display:none;align-items:flex-end;padding-bottom:var(--safe-bot);}
+#settingsModal.open{display:flex;}
+.sett-sheet{width:100%;background:#0f172a;border:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 24px;}
+.sett-handle{width:36px;height:4px;background:#334155;border-radius:2px;margin:0 auto 20px;}
+.sett-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;text-transform:uppercase;color:#f1f5f9;margin-bottom:16px;}
+.sett-profile{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;}
+.sett-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:4px;}
+.sett-detail{font-size:11px;color:var(--muted);line-height:1.7;}
+.sett-reset{width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--peak);background:transparent;color:var(--peak);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;cursor:pointer;margin-bottom:10px;}
+.sett-close{width:100%;padding:13px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;cursor:pointer;}
+
+.section{display:none;}.section.active{display:block;}
+#sec-coach{display:none;flex-direction:column;}#sec-coach.active{display:flex;}
+.fade-in{animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+@keyframes typingAnim{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-5px);}}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+#toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-bot) + 12px);left:50%;transform:translateX(-50%) translateY(20px);background:#1e293b;color:#f1f5f9;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;padding:7px 16px;border-radius:20px;border:1px solid var(--border);opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:200;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div id="onboarding">
+  <div id="ob-welcome" class="ob-screen">
+    <div class="ob-logo">⚡ TriCoach</div>
+    <div class="ob-hero">Your Race.<br><em>Your Plan.</em></div>
+    <div class="ob-sub">Tell our AI coach about your race and goals — it'll build a personalised training program around you, not a generic template.</div>
+    <div class="ob-feats">
+      <div class="ob-feat"><div class="ob-feat-icon">🤖</div><div><div class="ob-feat-title">AI-Built Plan</div><div class="ob-feat-sub">Chat with Coach to set up your program. Sessions, volumes, and intensity are calculated from your answers.</div></div></div>
+      <div class="ob-feat"><div class="ob-feat-icon">🏊🚴🏃</div><div><div class="ob-feat-title">All 7 Distances</div><div class="ob-feat-sub">Super Sprint to Ultra Ironman. Whichever race you're targeting, we've got you covered.</div></div></div>
+      <div class="ob-feat"><div class="ob-feat-icon">✅</div><div><div class="ob-feat-title">Track & Coach</div><div class="ob-feat-sub">Log sessions, monitor readiness, and chat with your AI coach anytime for swaps and advice.</div></div></div>
+    </div>
+    <button class="ob-start-btn" onclick="startOnboarding()">Build My Plan →</button>
+  </div>
+
+  <div id="ob-chat" class="ob-screen hidden">
+    <div class="ob-chat-hdr">
+      <div class="ob-chat-hdr-avatar">🤖</div>
+      <div><div class="ob-chat-hdr-name">TriCoach AI</div><div class="ob-chat-hdr-sub">Setting up your personalised plan</div></div>
+    </div>
+    <div id="ob-msgs"></div>
+    <div class="ob-input-area">
+      <textarea class="ob-textarea" id="ob-input" placeholder="Type your answer…" rows="1" oninput="obResize(this)" onkeydown="obKey(event)"></textarea>
+      <button class="ob-send" id="ob-send-btn" onclick="obSend()">➤</button>
+    </div>
+  </div>
+
+  <div id="ob-building" class="ob-screen hidden">
+    <div class="ob-build-icon">⚡</div>
+    <div class="ob-build-title">Building Your Plan</div>
+    <div class="ob-build-sub" id="ob-build-sub">Personalising sessions to your profile…</div>
+    <div class="ob-build-dots">
+      <div class="ob-build-dot active" id="bd0"></div>
+      <div class="ob-build-dot" id="bd1"></div>
+      <div class="ob-build-dot" id="bd2"></div>
+      <div class="ob-build-dot" id="bd3"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div class="hdr-row">
+      <div>
+        <div class="hdr-eye" id="hdrEye">Training Plan</div>
+        <div class="hdr-title" id="hdrTitle">Ironman 70.3 <span id="hdrRace">Durban</span></div>
+        <div class="hdr-date">→ <em id="hdrRaceDate">Jun 7, 2026 🏁</em></div>
+      </div>
+      <div class="hdr-right">
+        <div><div class="goal-lbl">Goal</div><div class="goal-val" id="hdrGoal">SUB-7</div></div>
+        <button class="settings-btn" onclick="openSettings()">⚙️</button>
+      </div>
+    </div>
+    <div class="phase-strip" id="phaseStrip"></div>
+  </div>
+  <div id="content">
+    <div class="section active" id="sec-plan">
+      <div class="wk-scroller-wrap"><div class="wk-scroller-lbl">Select Week</div><div class="wk-scroller" id="wkScroller"></div></div>
+      <div id="wkCard"></div><div class="days-list" id="daysList"></div>
+    </div>
+    <div class="section" id="sec-goals">
+      <div class="wk-scroller-wrap"><div class="wk-scroller-lbl">Select Week</div><div class="wk-scroller" id="wkScrollerG"></div></div>
+      <div id="wkCardG"></div><div class="goals-list" id="goalsList"></div>
+    </div>
+    <div class="section" id="sec-ready"><div class="ready-wrap" id="readyWrap"></div></div>
+    <div class="section" id="sec-coach">
+      <div class="coach-intro"><div class="coach-intro-card">
+        <div class="coach-intro-hd"><div class="coach-avatar">🤖</div><div><div class="coach-name">AI Coach</div><div class="coach-sub">Powered by Claude · Knows your plan</div></div></div>
+        <div class="coach-intro-txt" id="coachTxt">Ask about substitutions, pacing, nutrition, or race strategy. I'll approve swaps and mark sessions done. 💜</div>
+        <div style="margin-top:10px;padding:7px 10px;background:#0f172a;border-radius:8px;border:1px solid #1e293b;font-size:11px;color:#64748b;display:flex;align-items:center;gap:7px;"><span>📶</span><span>Coach requires internet. All other tabs work offline.</span></div>
+      </div></div>
+      <div class="quick-prompts"><div class="quick-lbl">Quick questions</div><div class="quick-row" id="quickRow"></div></div>
+      <div class="chat-msgs" id="chatMsgs"></div>
+      <div class="chat-input-wrap"><div class="chat-input-row">
+        <textarea class="chat-ta" id="chatInput" placeholder="Ask your coach…" rows="1" oninput="chatResize(this)" onkeydown="chatKey(event)"></textarea>
+        <button class="chat-send" id="chatSend" onclick="sendMsg()">➤</button>
+      </div></div>
+    </div>
+    <div class="section" id="sec-guide"><div class="guide-wrap" id="guideWrap"></div></div>
+  </div>
+  <div id="nav">
+    <button class="nav-btn active" id="nav-plan" onclick="switchTab('plan')"><div class="nav-icon">📋</div><div class="nav-label">Plan</div></button>
+    <button class="nav-btn" id="nav-goals" onclick="switchTab('goals')"><div class="nav-icon">🎯</div><div class="nav-label">Goals</div></button>
+    <button class="nav-btn" id="nav-ready" onclick="switchTab('ready')"><div class="nav-icon">📊</div><div class="nav-label">Ready</div></button>
+    <button class="nav-btn" id="nav-coach" onclick="switchTab('coach')"><div class="nav-icon">🤖</div><div class="nav-label">Coach</div></button>
+    <button class="nav-btn" id="nav-guide" onclick="switchTab('guide')"><div class="nav-icon">📖</div><div class="nav-label">Guide</div></button>
+  </div>
+</div>
+
+<div id="settingsModal" onclick="closeSettings()">
+  <div class="sett-sheet" onclick="event.stopPropagation()">
+    <div class="sett-handle"></div>
+    <div class="sett-title">Your Profile</div>
+    <div class="sett-profile" id="settProfile"></div>
+    <button class="sett-reset" onclick="resetProfile()">Reset & Start Over</button>
+    <button class="sett-close" onclick="closeSettings()">Close</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+// ═══ DISTANCE + GOAL CONFIG ═══════════════════════════════════════
+const DIST={
+  'super-sprint':{label:'Super Sprint',swim:'400m',bike:'10km',run:'2.5km',dimMult:.18,minW:4,
+    goals:[{v:'sub-30',t:'Sub 0:30',s:'Rapid finisher'},{v:'sub-45',t:'Sub 0:45',s:'Competitive age-grouper'},{v:'finish',t:'Just Finish!',s:'First triathlon ever'}],
+    bkdn:(g)=>{const d={'sub-30':['~7min','~1:45/100m','~17min','~35km/h','~12min','~4:48/km','<38min'],'sub-45':['~9min','~2:15/100m','~21min','~28km/h','~13min','~5:12/km','<45min'],'finish':['~12min','~3:00/100m','~28min','~21km/h','~18min','~7:12/km','<60min']}[g]||d['finish'];return[{l:'Swim 400m',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~1 min',p:'',c:'#94a3b8'},{l:'Bike 10km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~1 min',p:'',c:'#94a3b8'},{l:'Run 2.5km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'✅',c:'#34d399'}];}},
+  'sprint':{label:'Sprint',swim:'750m',bike:'20km',run:'5km',dimMult:.30,minW:6,
+    goals:[{v:'sub-60',t:'Sub 1:00',s:'Competitive'},{v:'sub-75',t:'Sub 1:15',s:'Strong finisher'},{v:'sub-90',t:'Sub 1:30',s:'Solid finisher'},{v:'finish',t:'Just Finish!',s:'First sprint tri'}],
+    bkdn:(g)=>{const d={'sub-60':['~12min','~1:36/100m','~34min','~35km/h','~18min','~3:36/km','<66min'],'sub-75':['~14min','~1:52/100m','~38min','~31km/h','~21min','~4:12/km','<75min'],'sub-90':['~16min','~2:08/100m','~42min','~28km/h','~25min','~5:00/km','<85min'],'finish':['~20min','~2:40/100m','~50min','~24km/h','~32min','~6:24/km','<105min']}[g];return[{l:'Swim 750m',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~1 min',p:'',c:'#94a3b8'},{l:'Bike 20km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~1 min',p:'',c:'#94a3b8'},{l:'Run 5km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'✅',c:'#34d399'}];}},
+  'olympic':{label:'Olympic',swim:'1.5km',bike:'40km',run:'10km',dimMult:.55,minW:8,
+    goals:[{v:'sub-2',t:'Sub 2:00',s:'Competitive'},{v:'sub-2.5',t:'Sub 2:30',s:'Strong finisher'},{v:'sub-3',t:'Sub 3:00',s:'Solid finisher'},{v:'finish',t:'Just Finish!',s:'First Olympic tri'}],
+    bkdn:(g)=>{const d={'sub-2':['~22min','~1:28/100m','~60min','~40km/h','~36min','~3:36/km','<2:00'],'sub-2.5':['~26min','~1:44/100m','~70min','~34km/h','~48min','~4:48/km','<2:30'],'sub-3':['~30min','~2:00/100m','~80min','~30km/h','~58min','~5:48/km','<3:00'],'finish':['~38min','~2:32/100m','~95min','~25km/h','~75min','~7:30/km','<3:30']}[g];return[{l:'Swim 1.5km',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~2 min',p:'',c:'#94a3b8'},{l:'Bike 40km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~1 min',p:'',c:'#94a3b8'},{l:'Run 10km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'✅',c:'#34d399'}];}},
+  't100':{label:'T100',swim:'1.5km',bike:'80km',run:'18km',dimMult:.75,minW:10,
+    goals:[{v:'sub-4',t:'Sub 4:00',s:'Competitive'},{v:'sub-5',t:'Sub 5:00',s:'Strong finisher'},{v:'sub-6',t:'Sub 6:00',s:'Solid finisher'},{v:'finish',t:'Just Finish!',s:'First T100'}],
+    bkdn:(g)=>{const d={'sub-4':['~24min','~1:36/100m','~2:10hrs','~37km/h','~70min','~3:54/km','<3:48'],'sub-5':['~28min','~1:52/100m','~2:40hrs','~30km/h','~88min','~4:54/km','<4:58'],'sub-6':['~32min','~2:08/100m','~3:10hrs','~25km/h','~105min','~5:50/km','<5:50'],'finish':['~40min','~2:40/100m','~3:45hrs','~21km/h','~130min','~7:13/km','<7:00']}[g];return[{l:'Swim 1.5km',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~2 min',p:'',c:'#94a3b8'},{l:'Bike 80km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~2 min',p:'',c:'#94a3b8'},{l:'Run 18km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'✅',c:'#34d399'}];}},
+  '70.3':{label:'Ironman 70.3',swim:'1.9km',bike:'90km',run:'21.1km',dimMult:1.0,minW:10,
+    goals:[{v:'sub-5',t:'Sub 5:00',s:'Competitive age-grouper'},{v:'sub-6',t:'Sub 6:00',s:'Strong finisher'},{v:'sub-7',t:'Sub 7:00',s:'Solid finisher'},{v:'finish',t:'Just Finish!',s:'First half-IM'}],
+    bkdn:(g)=>{const d={'sub-5':['~38min','~2:00/100m','~2:10hrs','~41.5km/h','~1:45hrs','~4:58/km','<4:55'],'sub-6':['~42min','~2:12/100m','~2:32hrs','~35.5km/h','~1:55hrs','~5:27/km','<5:55'],'sub-7':['~45min','~2:22/100m','~2:45hrs','~32.7km/h','~2:10hrs','~6:10/km','<6:45'],'finish':['~55min','~2:54/100m','~3:15hrs','~27.7km/h','~2:45hrs','~7:48/km','<7:55']}[g];return[{l:'Swim 1.9km',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~3 min',p:'',c:'#94a3b8'},{l:'Bike 90km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~2 min',p:'',c:'#94a3b8'},{l:'Run 21.1km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'15 min buffer ✅',c:'#34d399'}];}},
+  'full':{label:'Full Ironman',swim:'3.8km',bike:'180km',run:'42.2km',dimMult:1.8,minW:14,
+    goals:[{v:'sub-10',t:'Sub 10:00',s:'Competitive age-grouper'},{v:'sub-12',t:'Sub 12:00',s:'Strong finisher'},{v:'sub-14',t:'Sub 14:00',s:'Solid finisher'},{v:'finish',t:'Just Finish!',s:'Beat the 17hr cutoff'}],
+    bkdn:(g)=>{const d={'sub-10':['~1:10hrs','~1:50/100m','~5:00hrs','~36km/h','~3:30hrs','~4:59/km','<9:55'],'sub-12':['~1:20hrs','~2:06/100m','~5:45hrs','~31km/h','~4:30hrs','~6:24/km','<11:50'],'sub-14':['~1:30hrs','~2:22/100m','~6:30hrs','~27km/h','~5:30hrs','~7:49/km','<13:50'],'finish':['~1:45hrs','~2:46/100m','~7:30hrs','~24km/h','~6:30hrs','~9:15/km','<16:30']}[g];return[{l:'Swim 3.8km',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~5 min',p:'',c:'#94a3b8'},{l:'Bike 180km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~4 min',p:'',c:'#94a3b8'},{l:'Run 42.2km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'✅',c:'#34d399'}];}},
+  'ultra':{label:'Double Ultra',swim:'7.6km',bike:'360km',run:'84.4km',dimMult:2.5,minW:20,
+    goals:[{v:'sub-20',t:'Sub 20:00',s:'Elite ultra athlete'},{v:'sub-25',t:'Sub 25:00',s:'Strong ultra finisher'},{v:'finish',t:'Just Finish!',s:'Complete the journey'}],
+    bkdn:(g)=>{const d={'sub-20':['~2:20hrs','~1:50/100m','~10hrs','~36km/h','~7:00hrs','~4:59/km','<19:45'],'sub-25':['~2:45hrs','~2:10/100m','~12hrs','~30km/h','~9:30hrs','~6:45/km','<24:30'],'finish':['~3:30hrs','~2:46/100m','~15hrs','~24km/h','~12hrs','~8:32/km','<31hrs']}[g];return[{l:'Swim 7.6km',t:d[0],p:d[1],c:'#38bdf8'},{l:'T1',t:'~10 min',p:'',c:'#94a3b8'},{l:'Bike 360km',t:d[2],p:d[3],c:'#fdba74'},{l:'T2',t:'~10 min',p:'',c:'#94a3b8'},{l:'Run 84.4km',t:d[4],p:d[5],c:'#86efac'},{l:'TOTAL',t:d[6],p:'Multi-day event ✅',c:'#34d399'}];}},
+};
+const goalLabels={'sub-30':'Sub 0:30','sub-45':'Sub 0:45','sub-60':'Sub 1:00','sub-75':'Sub 1:15','sub-90':'Sub 1:30','sub-2':'Sub 2:00','sub-2.5':'Sub 2:30','sub-3':'Sub 3:00','sub-4':'Sub 4:00','sub-5':'Sub 5:00','sub-6':'Sub 6:00','sub-7':'Sub 7:00','sub-10':'Sub 10:00','sub-12':'Sub 12:00','sub-14':'Sub 14:00','sub-20':'Sub 20:00','sub-25':'Sub 25:00','finish':'Just Finish!'};
+const phases=[{id:0,name:'BASE',color:'#38bdf8'},{id:1,name:'BUILD',color:'#fb923c'},{id:2,name:'PEAK',color:'#f43f5e'},{id:3,name:'TAPER',color:'#34d399'}];
+const typeStyle={Swim:{bg:'var(--swim-bg)',color:'var(--swim)',icon:'🏊'},Bike:{bg:'var(--bike-bg)',color:'var(--bike)',icon:'🚴'},Run:{bg:'var(--run-bg)',color:'var(--run)',icon:'🏃'},Brick:{bg:'var(--brick-bg)',color:'var(--brick)',icon:'⚡'},Rest:{bg:'var(--rest-bg)',color:'var(--rest)',icon:'💤'},Strength:{bg:'var(--str-bg)',color:'var(--str)',icon:'💪'}};
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_F=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ═══ PLAN GENERATOR ═══════════════════════════════════════════════
+const BS_M=[1500,2200,2500,1200],BS_2=[1200,1800,2000,800];
+const BB_S=[60,90,120,45],BB_L=[90,150,180,null];
+const BR_S=[40,55,65,30],BR_L=[50,65,80,null],BB_R=[15,25,35,null];
+const HRS=[[5.5,8.0,10.0,12.0],[6.5,9.5,11.5,14.0],[7.5,10.0,12.0,14.5],[3.0,4.5,5.5,7.0]];
+
+function r100(n){return Math.round(Math.max(300,n)/100)*100;}
+function r5(n){return n?Math.round(Math.max(10,n)/5)*5:null;}
+function durStr(m){if(!m)return'';if(m>=60){const h=Math.floor(m/60),mm=m%60;return mm?`${h}:${String(mm).padStart(2,'0')} hrs`:`${h} hrs`;}return`${m} min`;}
+
+function planWeekCount(raceDate,dist,startDate){
+  const cfg=DIST[dist]||DIST['70.3'];
+  const from=startDate?new Date(startDate+'T12:00:00'):new Date();
+  const to=new Date((raceDate||'2026-06-07')+'T12:00:00');
+  const n=Math.ceil((to-from)/(7*864e5));
+  // Floor = minimum sensible weeks for the distance; ceiling = 36 (no artificial distance cap)
+  return Math.max(cfg.minW,Math.min(36,n));
+}
+function buildPhaseMap(n){
+  // For long plans, insert extra recovery weeks every 3rd week within each phase
+  // Phase proportions: Base 33%, Build 34%, Peak 22%, Taper fixed
+  const taper=n>=20?2:1;
+  const rem=n-taper;
+  let base=Math.max(1,Math.round(rem*.33));
+  let build=Math.max(1,Math.round(rem*.34));
+  let peak=Math.max(1,rem-base-build);
+  while(base+build+peak>rem){if(base>peak&&base>1)base--;else if(build>1)build--;else if(peak>1)peak--;}
+  const out=[];
+  const add=(ph,cnt)=>{
+    for(let i=0;i<cnt;i++){
+      // Insert recovery every 3 hard weeks for plans with long phases
+      const isRec=cnt<=1?false:(cnt>=6?(i+1)%4===0&&i<cnt-1:i===cnt-1);
+      out.push({phase:ph,wip:i+1,len:cnt,isRec,pct:cnt<=1?1:i/(cnt-1)});
+    }
+  };
+  add(0,base);add(1,build);add(2,peak);
+  // Taper: 1 week for short plans, 2 for long
+  for(let i=0;i<taper;i++)out.push({phase:3,wip:i+1,len:taper,isRec:false,pct:1});
+  return out;
+}
+function buildPlan(prof){
+  const cfg=DIST[prof.distance]||DIST['70.3'];
+  const vl={'6-8':0,'8-10':1,'10-12':2,'12+':3}[prof.hours]??1;
+  const vm=[.70,1.00,1.25,1.50][vl];
+  const fs={beginner:1,some:2,solid:3,experienced:4}[prof.fitness]??3;
+  const gs=cfg.goals.findIndex(g=>g.v===prof.goal);
+  const gl=cfg.goals.length-1;
+  const intLvl=Math.min(4,Math.max(1,Math.round(fs*.55+(gl-gs+1)/(gl+1)*3.45)));
+  const nw=planWeekCount(prof.raceDate,prof.distance,prof.startDate);
+  const c={vm,vl,fs,intLvl,dm:cfg.dimMult,prof,nw};
+  return buildPhaseMap(nw).map((pi,i)=>buildWeek(i+1,pi,c));
+}
+function buildWeek(num,pi,c){
+  const{vm,vl,intLvl,dm,prof}=c;const{phase,isRec,pct}=pi;
+  const ws=isRec?.65:(.88+pct*.24),sc=vm*ws*dm;
+  const sw=b=>r100(b*sc),td=b=>b?r5(b*sc):null;
+  const v={SM:sw(BS_M[phase]),S2:sw(BS_2[phase]),BS:td(BB_S[phase]),BL:td(BB_L[phase]),RS:td(BR_S[phase]),RL:td(BR_L[phase]),BR:td(BB_R[phase])};
+  const days=phase===3?taperDays(c,v):mainDays(pi,c,v);
+  const hb=HRS[phase][vl],ha=isRec?hb*.68:hb;
+  return{week:num,phase,hours:ha<10?ha.toFixed(1)+' hrs':Math.round(ha)+' hrs',focus:mkFocus(phase,pi,intLvl),goals:mkGoals(phase,pi,intLvl),days};
+}
+function mainDays(pi,c,v){
+  const{phase,isRec,pct}=pi;const{intLvl}=c;const{SM,S2,BS,BL,RS,RL,BR}=v;
+  const sT=isRec?'easy':phase===0?(pct<.4?'easy':'int'):phase===1?'int':'rsim';
+  const rT=isRec?'easy':phase===0?(pct<.6||intLvl<2?'easy':'str'):phase===1?'tmp':'int';
+  const bT=isRec?'easy':phase===0?(pct>.5&&intLvl>=3?'lint':'easy'):phase===1?'int':'hint';
+  const s2T=phase>=2&&!isRec?'ow':'drills';
+  const thu=[{type:'Swim',detail:swimD(S2,s2T,phase,intLvl)}];
+  if(phase>=1&&!isRec&&intLvl>=2)thu.push({type:'Strength',detail:phase>=2?'30 min: deadlifts, hip bridges, planks, calf raises.':'30 min: single-leg squats, hip bridges, planks, calf raises.'});
+  const sat=[{type:'Bike',detail:bikeD(BL||BS,isRec?'el':phase===0?'long':phase===1?'rpl':'rsim',intLvl)}];
+  if(BR&&!isRec)sat.push({type:'Brick',detail:brickD(BR,phase,intLvl)});
+  const sunM=RL&&!isRec?RL:Math.max(20,Math.round((RS||30)*.75));
+  return[
+    {day:'MON',sessions:[{type:'Swim',detail:swimD(SM,sT,phase,intLvl)}]},
+    {day:'TUE',sessions:[{type:'Run',detail:runD(RS,rT,intLvl)}]},
+    {day:'WED',sessions:[{type:'Bike',detail:bikeD(BS,bT,intLvl)}]},
+    {day:'THU',sessions:thu},
+    {day:'FRI',sessions:[{type:'Rest',detail:phase>=2&&!isRec&&intLvl>=3?'Full rest. Visualise tomorrow\'s race sim — kit, nutrition, pacing.':'Full rest or 20 min light yoga / foam rolling.'}]},
+    {day:'SAT',sessions:sat},
+    {day:'SUN',sessions:[{type:'Run',detail:RL&&!isRec?longRunD(RL,phase,intLvl):runD(sunM,'easy',intLvl)}]},
+  ];
+}
+function taperDays(c,v){
+  const{prof}=c;const{SM,S2,BS,RS}=v;const rn=prof.raceName||'your race';
+  return[
+    {day:'MON',sessions:[{type:'Swim',detail:`${SM}m very easy. Loosen up — zero effort.`}]},
+    {day:'TUE',sessions:[{type:'Run',detail:`${r5(RS*.75)} min easy + 4×1 min at race pace. Activate.`}]},
+    {day:'WED',sessions:[{type:'Bike',detail:`${r5(BS*.75)} min easy + 3×5 min at race pace. Stay sharp.`}]},
+    {day:'THU',sessions:[{type:'Swim',detail:`${S2}m easy. Last swim. Pack your transition bag tonight.`}]},
+    {day:'FRI',sessions:[{type:'Rest',detail:'Full rest. Rack bike, check gear list. Eat well, sleep early.'}]},
+    {day:'SAT',sessions:[{type:'Rest',detail:'RACE EVE. 10 min easy jog + spin. Familiar food. Visualise. Sleep early.'}]},
+    {day:'SUN',sessions:[{type:'Brick',detail:`🏁 RACE DAY — ${rn}. Swim→Bike→Run. You've done the work. EXECUTE.`}]},
+  ];
+}
+function swimD(dist,type,ph,il){
+  const wu=r100(Math.min(500,dist*.18)),cd=r100(Math.min(400,dist*.14)),mn=Math.max(200,dist-wu-cd);
+  if(type==='easy')return`${dist}m easy. ${wu}m warm-up, ${mn}m Zone 2, ${cd}m cool-down.`;
+  if(type==='drills')return`${dist}m drills. Catch-up, finger-tip drag, bilateral breathing.`;
+  if(type==='int'){const id=ph>=2&&il>=3?200:100,n=Math.max(4,Math.round(mn/id)),rest=il<=2?20:15,eff=il<=2?'comfortable effort':'race pace';return`${dist}m. ${wu}m warm-up, ${n}×${id}m @ ${eff} (${rest}s rest), ${cd}m cool-down.`;}
+  if(type==='rsim'){const s=r100(Math.min(dist-wu,dist*.72));return`${dist}m. ${s}m straight through at target race pace — time it.`;}
+  if(type==='ow')return`${dist}m open water. Sighting every 6 strokes, wave entry, drafting practice.`;
+  return`${dist}m swim.`;
+}
+function bikeD(mins,type,il){
+  if(!mins)return'30 min easy spin, Zone 2.';
+  const wu=10,cd=10,mn=Math.max(10,mins-wu-cd);
+  switch(type){
+    case'easy':return`${mins} min easy spin. Zone 2 only, 85–90 rpm.`;
+    case'lint':{const n=il>=3?3:2,d=il>=3?10:8;return`${mins} min. ${wu} min warm-up, ${n}×${d} min Zone 3 (5 min easy), ${cd} min cool-down.`;}
+    case'int':{const n=il>=3?4:3,d=Math.max(8,Math.round(mn/(n*1.8)/5)*5);return`${mins} min. ${wu} min warm-up, ${n}×${d} min Zone ${il>=3?'3–4':'3'} (5 min easy), ${cd} min cool-down.`;}
+    case'hint':{const n=il>=3?5:4,d=il>=3?10:12;return`${mins} min. ${n}×${d} min Zone ${il>=3?'4':'3–4'} with 5 min easy. Highest intensity.`;}
+    case'long':return`${durStr(mins)} Zone 2. Eat every 20 min from the first pedal stroke.`;
+    case'el':return`${durStr(mins)} easy. No structure — flush the legs and enjoy.`;
+    case'rpl':{const rp=Math.round(mins*.38/5)*5;return`${durStr(mins)}. Middle ${rp} min at race pace. Fuel every 20 min.`;}
+    case'rsim':return`${durStr(mins)} race sim. Full kit, race nutrition, race pacing. Treat this like the real thing.`;
+  }
+  return`${durStr(mins)} bike.`;
+}
+function runD(mins,type,il){
+  if(!mins)return'30 min easy run.';
+  switch(type){
+    case'easy':return il<=2?`${mins} min easy. Run/walk is fine — time on feet matters.`:`${mins} min Zone 2. Conversational pace throughout.`;
+    case'str':{const n=il>=3?6:4,d=il>=3?30:20;return`${mins} min easy + ${n}×${d}s strides at the end. Relaxed, quick turnover.`;}
+    case'tmp':{const ez=Math.round(mins*.52),n=il>=3?2:1,d=Math.max(5,Math.round((mins-ez-n*3)/n));return n===1?`${mins} min. ${ez} min Zone 2, ${d} min at tempo.`:`${mins} min. ${ez} min Zone 2, ${n}×${d} min tempo (3 min jog).`;}
+    case'int':{const ez=Math.round(mins*.35),n=il>=3?4:3,d=Math.max(5,Math.round((mins-ez-10)/n/5)*5),eff=il>=3?'10K effort':'half-marathon effort';return`${mins} min. ${ez} min easy, ${n}×${d} min at ${eff} (3 min jog).`;}
+  }
+  return`${mins} min run.`;
+}
+function longRunD(mins,ph,il){
+  if(ph===0)return`${mins} min easy long run. Zone 2 the whole way.`;
+  if(ph===1&&il<=2)return`${mins} min easy long run. Time on feet, Zone 2.`;
+  if(ph===1){const rp=Math.min(20,Math.round(mins*.2/5)*5);return`${mins} min. Mostly Zone 2, last ${rp} min at race pace.`;}
+  const ez=Math.round(mins*.65/5)*5,rp=mins-ez;
+  return`${mins} min. First ${ez} min easy, last ${rp} min at race pace. Confidence builder.`;
+}
+function brickD(mins,ph,il){
+  const pace=il<=2?'easy jog':il===3?'5:30–6:00/km':'5:00–5:30/km';
+  if(ph===0)return`${mins} min easy run off the bike. Get used to the heavy-leg feeling.`;
+  if(ph===1)return`${mins} min at ${pace}. Simulate race-day legs.`;
+  return`${mins} min at ${pace}. Race sim — exactly what the run start feels like.`;
+}
+function mkFocus(ph,pi,il){
+  const{isRec,wip}=pi;
+  if(ph===3)return'Race week. Stay sharp, stay calm. TRUST YOUR TRAINING.';
+  if(isRec)return['Recovery week. Adaptation happens here.','Recovery week. Back off — consolidate the gains.','Recovery week. Getting faster while you rest.'][Math.min(ph,2)];
+  const a=[[['Establish the routine. Zone 2 only — zero ego.','Build the aerobic engine.','First structured intensity. Short efforts, big returns.','Consolidate base fitness.'],['Intensity enters. Race-pace work begins.','Volume and effort climb together.','Peak build volume. Fitness is forged here.','Dial in nutrition and race-pace feel.'],['Race sim mode. Every session is a dress rehearsal.','Hardest weeks. Commit fully.','Sharpen the edge. Quality over quantity.']]];
+  const b=a[0][Math.min(ph,2)];return b[Math.min(wip-1,b.length-1)];
+}
+function mkGoals(ph,pi,il){
+  const{isRec,wip}=pi;
+  if(ph===3)return{swim:'Last swim — loosen up, don\'t tire out.',bike:'Easy ride + 3×5 min at race pace. Sharp, not tired.',run:'Easy run + 4×1 min pickups. Then nothing until the gun.'};
+  if(isRec)return{swim:'Short and easy — maintain the feel. No volume or intensity.',bike:'Easy spins only. If it feels too easy, you\'re doing it right.',run:'Short and slow. Let the legs freshen up.'};
+  const sg={0:['Get comfortable. Technique over distance, every time.','Build to target distance. Find your race-pace reference.','First race-pace efforts. Note the effort.','Technique week — sighting should feel automatic.'],1:['First real pace sets. Record your 100m splits.','First full race-distance swim. Time it.','Longer race-pace intervals. Race-specific endurance.','Recovery swim — maintain feel only.'],2:['Race-distance time trial. How close are you?','Longest intervals. Stay relaxed.','Drop volume. Protect energy for taper.']};
+  const bg={0:['Zone 2 the whole ride. Conversation the whole time.','2-hr ride. Eating every 20 min — train the gut.','First intervals. Hard to notice, not to suffer.','Easy spins only.'],1:['First real bike intervals. Build race-pace feel.','Full race distance Saturday. Controlled, not fast.','Longer quality efforts. Sustain race pace.','Easy rides + race-pace bursts to hold sharpness.'],2:['Highest bike intensity — builds your race engine.','60 min sustained race pace in a long ride.','Short sharp race-pace hits. Shed fatigue.']};
+  const rg={0:['Time on feet. Pace is irrelevant — base first.','Add strides after your run. Relaxed, quick turnover.','First gentle tempo. Short efforts to introduce intensity.','Short and easy. Too easy is exactly right.'],1:['First real tempo — comfortably hard, you can talk.','Half marathon effort intervals. Efficiency under fatigue.','Longer tempo. Mental toughness to hold hard pace.','Short and easy. Legs thank you next phase.'],2:['Intervals at goal effort. Uncomfortable is the point.','Longest run — easy first, build to race pace.','Last quality run. After this, just arrive fresh.']};
+  const idx=Math.min(wip-1,sg[Math.min(ph,2)].length-1);
+  return{swim:sg[Math.min(ph,2)][idx],bike:bg[Math.min(ph,2)][idx],run:rg[Math.min(ph,2)][idx]};
+}
+
+// ═══ ONBOARDING CHAT ══════════════════════════════════════════════
+const OB_SYSTEM=`You are TriCoach, an AI triathlon coach setting up a user's personalised training plan. Be warm, encouraging, and concise (2-3 sentences per message max).
+
+Gather these 8 parameters through natural conversation:
+1. name (first name)
+2. raceName (event name)
+3. raceDate → output as YYYY-MM-DD
+4. startDate → when they want to start training, output as YYYY-MM-DD. If they say "now" or "today" use today's date. If they say "next Monday" or a specific date, convert it. Always confirm what date you've understood.
+5. distance → one of: super-sprint, sprint, olympic, t100, 70.3, full, ultra
+   (super-sprint=400m/10km/2.5km, sprint=750m/20km/5km, olympic=1.5km/40km/10km, t100≈100km total, 70.3=half ironman, full=ironman 140.6, ultra=double ironman+)
+6. fitness → one of: beginner (little training), some (casual), solid (regular endurance), experienced (done similar races)
+7. hours → one of: 6-8, 8-10, 10-12, 12+
+8. goal → choose the appropriate option for their distance:
+   super-sprint: sub-30, sub-45, finish
+   sprint: sub-60, sub-75, sub-90, finish
+   olympic: sub-2, sub-2.5, sub-3, finish
+   t100: sub-4, sub-5, sub-6, finish
+   70.3: sub-5, sub-6, sub-7, finish
+   full: sub-10, sub-12, sub-14, finish
+   ultra: sub-20, sub-25, finish
+
+Important: after you have raceDate and startDate, tell the user how many weeks their plan will be (weeks between startDate and raceDate, capped at the distance max). If the gap is very short, flag it gently.
+
+Ask 1-2 questions at a time. When you have all 8 confirmed, output EXACTLY this token on its own line (nothing after it):
+||PLANREADY:{"name":"X","raceName":"X","raceDate":"YYYY-MM-DD","startDate":"YYYY-MM-DD","distance":"X","fitness":"X","hours":"X","goal":"X"}||`;
+
+const FIRST_MSG=`Hey! I'm your TriCoach AI 👋 I'm going to build you a personalised training plan in about 2 minutes.\n\nFirst up — what's your name?`;
+
+let obHistory=[],obLoading=false;
+
+function startOnboarding(){
+  document.getElementById('ob-welcome').classList.add('hidden');
+  document.getElementById('ob-chat').classList.remove('hidden');
+  obHistory=[{role:'assistant',content:FIRST_MSG}];
+  addObMsg('ai',FIRST_MSG);
+  document.getElementById('ob-input').focus();
+}
+
+function addObMsg(role,text,id){
+  const el=document.getElementById('ob-msgs');
+  const div=document.createElement('div');div.className=`ob-msg ${role} fade-in`;
+  if(id)div.id=id;
+  const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML=`<div class="ob-bubble">${text.replace(/\n/g,'<br>')}</div><div class="ob-bubble-time">${now}</div>`;
+  el.appendChild(div);el.scrollTop=el.scrollHeight;
+}
+function addObTyping(){
+  const el=document.getElementById('ob-msgs');
+  const div=document.createElement('div');div.className='ob-msg ai';div.id='ob-typing';
+  div.innerHTML='<div class="ob-typing"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>';
+  el.appendChild(div);el.scrollTop=el.scrollHeight;
+}
+function removeObTyping(){const el=document.getElementById('ob-typing');if(el)el.remove();}
+
+async function obSend(){
+  const input=document.getElementById('ob-input'),text=input.value.trim();
+  if(!text||obLoading)return;
+  input.value='';obResize(input);
+  addObMsg('user',text);
+  obLoading=true;document.getElementById('ob-send-btn').disabled=true;
+  obHistory.push({role:'user',content:text});
+  addObTyping();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system:OB_SYSTEM,messages:obHistory})});
+    const data=await res.json();
+    removeObTyping();
+    const raw=data.content?.map(b=>b.text||'').join('')||'Sorry, connection issue. Please try again.';
+    obHistory.push({role:'assistant',content:raw});
+    const match=raw.match(/\|\|PLANREADY:(.+?)\|\|/s);
+    if(match){
+      const clean=raw.replace(/\|\|PLANREADY:.+?\|\|/s,'').trim();
+      if(clean)addObMsg('ai',clean);
+      let prof;
+      try{prof=JSON.parse(match[1]);}catch(e){addObMsg('ai','There was a small issue — let me try again.');obLoading=false;document.getElementById('ob-send-btn').disabled=false;return;}
+      setTimeout(()=>launchBuild(prof),1200);
+    }else{
+      addObMsg('ai',raw);
+    }
+  }catch(e){removeObTyping();addObMsg('ai','Connection issue — check your internet and try again.');}
+  obLoading=false;document.getElementById('ob-send-btn').disabled=false;
+}
+
+function launchBuild(prof){
+  document.getElementById('ob-chat').classList.add('hidden');
+  document.getElementById('ob-building').classList.remove('hidden');
+  const msgs=['Personalising sessions to your profile…','Calculating week-by-week volumes…',`Setting up your ${planWeekCount(prof.raceDate,prof.distance,prof.startDate)}-week timeline…`,'Almost ready — final touches…'];
+  let i=0;
+  const sub=document.getElementById('ob-build-sub');
+  const iv=setInterval(()=>{
+    i++;
+    if(i<4){sub.textContent=msgs[i];document.getElementById('bd'+i).classList.add('active');}
+    else{clearInterval(iv);saveProfile(prof);setTimeout(()=>{document.getElementById('onboarding').classList.add('hidden');initApp();},400);}
+  },700);
+}
+
+function obKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();obSend();}}
+function obResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+
+// ═══ PROFILE ══════════════════════════════════════════════════════
+let profile=null;
+function loadProfile(){try{const s=localStorage.getItem('tricoach_profile');if(s)profile=JSON.parse(s);}catch(e){profile=null;}}
+function saveProfile(p){profile=p;try{localStorage.setItem('tricoach_profile',JSON.stringify(p));}catch(e){}}
+function resetProfile(){if(!confirm('Reset your profile? All progress will be lost.'))return;localStorage.clear();location.reload();}
+function openSettings(){
+  if(!profile)return;
+  const fm={beginner:'Fresh Start',some:'Some Base',solid:'Solid Base',experienced:'Experienced'};
+  const dist=DIST[profile.distance]||DIST['70.3'];
+  document.getElementById('settProfile').innerHTML=`<div class="sett-name">${profile.name}</div><div class="sett-detail">${profile.raceName}<br>Starts ${fmtDate(profile.startDate||profile.raceDate)} → Race ${fmtDate(profile.raceDate)}<br>${dist.label} (${dist.swim} / ${dist.bike} / ${dist.run})<br>${fm[profile.fitness]||''} · ${profile.hours} hrs/week · ${goalLabels[profile.goal]||''}<br>${weeks.length}-week plan</div>`;
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
+
+// ═══ DATES ════════════════════════════════════════════════════════
+function parseRaceDate(){return new Date(((profile?.raceDate)||'2026-06-07')+'T12:00:00');}
+function fmtDate(s){if(!s)return'';const d=new Date(s+'T12:00:00');return`${MONTHS_F[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;}
+function daysToRace(){return Math.max(0,Math.ceil((parseRaceDate()-new Date())/86400000));}
+function parseStartDate(){return new Date(((profile?.startDate)||new Date().toISOString().slice(0,10))+'T12:00:00');}
+function weekDates(wn){
+  const start=parseStartDate();
+  const wm=new Date(start);wm.setDate(start.getDate()+(wn-1)*7);
+  const ws=new Date(wm);ws.setDate(wm.getDate()+6);
+  const s=`${MONTHS[wm.getMonth()]} ${wm.getDate()}`,e=wm.getMonth()===ws.getMonth()?`${ws.getDate()}`:`${MONTHS[ws.getMonth()]} ${ws.getDate()}`;
+  return wn===weeks.length?`${s}–${e} 🏁`:`${s}–${e}`;
+}
+function detectCurWeek(){
+  const start=parseStartDate();
+  const days=Math.floor((new Date()-start)/86400000);
+  return Math.max(1,Math.min(weeks.length||1,Math.floor(days/7)+1));
+}
+
+// ═══ STATE ════════════════════════════════════════════════════════
+let weeks=[],curWeek=1,curTab='plan';
+let completed={},chatHistory=[],aiLoading=false;
+function loadCompleted(){try{const s=localStorage.getItem('tricoach_done');if(s)completed=JSON.parse(s);}catch(e){completed={};}}
+function saveDone(){try{localStorage.setItem('tricoach_done',JSON.stringify(completed));}catch(e){}}
+function isDone(w,d,s){return !!(completed[w]&&completed[w][d]&&completed[w][d][s]);}
+function markDone(w,d,s){if(!completed[w])completed[w]={};if(!completed[w][d])completed[w][d]={};completed[w][d][s]=true;saveDone();renderWkScrollers();if(curTab==='plan')renderPlan();if(curTab==='ready')renderReady();showToast('✅ Session marked done!');}
+function toggleSess(w,d,s){if(!completed[w])completed[w]={};if(!completed[w][d])completed[w][d]={};completed[w][d][s]=!completed[w][d][s];saveDone();renderPlan();renderWkScrollers();showToast(completed[w][d][s]?'✅ Logged!':'↩️ Unmarked');}
+
+// ═══ STATS ════════════════════════════════════════════════════════
+function totalS(){let t=0;weeks.forEach(w=>w.days.forEach(d=>t+=d.sessions.length));return t;}
+function doneS(){let t=0;weeks.forEach((w,wi)=>w.days.forEach((d,di)=>d.sessions.forEach((_,si)=>{if(isDone(wi,di,si))t++;})));return t;}
+function wkPct(wi){const w=weeks[wi];if(!w)return 0;let tot=0,dn=0;w.days.forEach((d,di)=>d.sessions.forEach((_,si)=>{tot++;if(isDone(wi,di,si))dn++;}));return tot?Math.round(dn/tot*100):0;}
+function discPct(type){let tot=0,dn=0;weeks.forEach((w,wi)=>w.days.forEach((d,di)=>d.sessions.forEach((s,si)=>{if(s.type===type){tot++;if(isDone(wi,di,si))dn++;}})));return tot?Math.round(dn/tot*100):0;}
+function phasePct(pid){let tot=0,dn=0;weeks.forEach((w,wi)=>{if(w.phase!==pid)return;w.days.forEach((d,di)=>d.sessions.forEach((_,si)=>{tot++;if(isDone(wi,di,si))dn++;}));});return tot?Math.round(dn/tot*100):0;}
+function overallPct(){const t=totalS();return t?Math.round(doneS()/t*100):0;}
+function rcol(p){return p>=80?'#34d399':p>=50?'#fb923c':'#f43f5e';}
+function rlbl(p){if(p>=90)return'🔥 Race Ready!';if(p>=70)return'💪 On Track';if(p>=45)return'⚡ Building';if(p>=20)return'🌱 Getting Started';return'🎯 Let\'s Begin!';}
+
+let toastT;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1900);}
+
+// ═══ TABS & WEEKS ═════════════════════════════════════════════════
+function switchTab(tab){
+  curTab=tab;
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+tab).classList.add('active');
+  if(tab!=='coach')document.getElementById('content').scrollTop=0;
+  if(tab==='ready')renderReady();
+  if(tab==='guide')renderGuide();
+  if(tab==='coach')renderQuickPrompts();
+}
+function selectWeek(w){curWeek=w;renderWkScrollers();if(curTab==='plan')renderPlan();if(curTab==='goals')renderGoals();}
+function renderWkScrollers(){
+  const cw=detectCurWeek();
+  ['wkScroller','wkScrollerG'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;el.innerHTML='';
+    weeks.forEach((w,wi)=>{
+      const ph=phases[w.phase],isA=w.week===curWeek,pct=wkPct(wi);
+      const wrap=document.createElement('div');wrap.className='wk-btn-wrap';
+      if(w.week===cw){const b=document.createElement('div');b.className='now-badge';b.textContent='NOW';wrap.appendChild(b);}
+      const btn=document.createElement('button');btn.className='wk-btn';btn.textContent=w.week;
+      btn.style.background=isA?ph.color:'var(--surface)';btn.style.borderColor=isA?ph.color:'var(--border)';btn.style.color=isA?'#0a0e1a':ph.color;
+      if(pct===100&&!isA){const tick=document.createElement('div');tick.className='wk-tick';btn.appendChild(tick);}
+      btn.onclick=()=>selectWeek(w.week);wrap.appendChild(btn);el.appendChild(wrap);
+    });
+    const a=el.querySelectorAll('.wk-btn-wrap')[curWeek-1];
+    if(a)setTimeout(()=>a.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}),50);
+  });
+}
+function wkCardHTML(w,wi){
+  const ph=phases[w.phase],pct=wkPct(wi),col=rcol(pct);
+  return`<div class="wk-card fade-in" style="background:${ph.color}18;border-color:${ph.color}35;margin:9px 16px 0;"><div style="flex:1"><div class="wk-card-ph" style="color:${ph.color}">Week ${w.week} · ${ph.name}</div><div class="wk-card-date">📅 ${weekDates(w.week)}</div><div class="wk-card-focus">${w.focus}</div><div class="wk-prog-bar" style="margin-top:7px"><div class="wk-prog-fill" style="width:${pct}%;background:${col}"></div></div><div style="font-size:9px;color:${col};font-family:'Barlow Condensed',sans-serif;font-weight:700;margin-top:2px">${pct}% complete</div></div><div class="wk-card-r"><div class="wk-card-ll">Load</div><div class="wk-card-lv" style="color:${ph.color}">${w.hours}</div></div></div>`;
+}
+
+// ═══ RENDER: PLAN ═════════════════════════════════════════════════
+function renderPlan(){
+  const wi=curWeek-1,w=weeks[wi];if(!w)return;
+  document.getElementById('wkCard').innerHTML=wkCardHTML(w,wi);
+  const list=document.getElementById('daysList');list.innerHTML='';
+  w.days.forEach((d,di)=>{
+    const allDone=d.sessions.every((_,si)=>isDone(wi,di,si));
+    const tags=d.sessions.map(s=>{const st=typeStyle[s.type]||typeStyle.Rest;return`<span class="s-tag" style="background:${st.bg};color:${st.color}">${st.icon} ${s.type}</span>`;}).join('');
+    const details=d.sessions.map((s,si)=>{
+      const st=typeStyle[s.type]||typeStyle.Rest,done=isDone(wi,di,si);
+      const sub=s.type!=='Rest'&&s.type!=='Brick'&&!done?`<button class="s-sub-btn" onclick="event.stopPropagation();openSub(${wi},${di},${si})">Ask Coach</button>`:'';
+      return`<div class="s-row ${done?'done':''}" onclick="toggleSess(${wi},${di},${si})"><div class="s-chk">${done?'✓':''}</div><div class="s-info"><div class="s-type" style="color:${done?'var(--done)':st.color}">${st.icon} ${s.type}</div><div class="s-detail">${s.detail}</div></div>${sub}</div>`;
+    }).join('');
+    const card=document.createElement('div');card.className=`day-card fade-in${allDone?' all-done':''}`;
+    card.innerHTML=`<div class="day-hdr"><div class="day-name">${d.day}</div><div class="s-tags">${tags}</div>${allDone?'<div class="day-done-badge">✅</div>':''}</div><div class="day-body">${details}</div>`;
+    list.appendChild(card);
+  });
+}
+
+// ═══ RENDER: GOALS ════════════════════════════════════════════════
+function renderGoals(){
+  const wi=curWeek-1,w=weeks[wi];if(!w)return;
+  document.getElementById('wkCardG').innerHTML=wkCardHTML(w,wi);
+  const list=document.getElementById('goalsList');list.innerHTML='';
+  [{key:'swim',label:'Swim Goal',icon:'🏊',color:'var(--swim)',bg:'var(--swim-bg)'},{key:'bike',label:'Bike Goal',icon:'🚴',color:'var(--bike)',bg:'var(--bike-bg)'},{key:'run',label:'Run Goal',icon:'🏃',color:'var(--run)',bg:'var(--run-bg)'}].forEach(g=>{
+    const card=document.createElement('div');card.className='goal-card fade-in';
+    card.innerHTML=`<div class="goal-card-hdr" style="background:${g.bg}"><span style="font-size:16px">${g.icon}</span><div class="goal-card-hdr-title" style="color:${g.color}">${g.label}</div></div><div class="goal-card-body">${w.goals[g.key]}</div>`;
+    list.appendChild(card);
+  });
+}
+
+// ═══ RENDER: READINESS ════════════════════════════════════════════
+function renderReady(){
+  const pct=overallPct(),col=rcol(pct),days=daysToRace(),dn=doneS(),tot=totalS();
+  function arc(s,e){const r=68,cx=88,cy=88,sr=s*Math.PI/180,er=e*Math.PI/180;return`M ${cx+r*Math.cos(sr)} ${cy+r*Math.sin(sr)} A ${r} ${r} 0 0 1 ${cx+r*Math.cos(er)} ${cy+r*Math.sin(er)}`;}
+  const svg=`<svg style="width:170px;height:100px" viewBox="0 0 176 100"><path d="${arc(180,360)}" fill="none" stroke="#1e293b" stroke-width="11" stroke-linecap="round"/><path d="${arc(180,180+180*(pct/100))}" fill="none" stroke="${col}" stroke-width="11" stroke-linecap="round"/></svg>`;
+  document.getElementById('readyWrap').innerHTML=`
+    <div class="dial-card fade-in"><div class="dial-title">Overall Race Readiness</div>${svg}<div class="dial-pct" style="color:${col}">${pct}%</div><div class="dial-rlbl" style="color:${col}">${rlbl(pct)}</div><div class="dial-days">Race day in <span>${days}</span> days</div></div>
+    <div class="stat-row fade-in"><div class="stat-card"><div class="stat-val" style="color:var(--done)">${dn}</div><div class="stat-lbl">Done</div></div><div class="stat-card"><div class="stat-val" style="color:var(--muted)">${tot-dn}</div><div class="stat-lbl">Left</div></div><div class="stat-card"><div class="stat-val" style="color:var(--base)">${tot}</div><div class="stat-lbl">Total</div></div></div>
+    <div class="disc-card fade-in"><div class="disc-title">Discipline Breakdown</div>${['Swim','Bike','Run'].map(type=>{const p=discPct(type),st=typeStyle[type],c=rcol(p);return`<div class="disc-row"><div class="disc-icon">${st.icon}</div><div class="disc-info"><div class="disc-name" style="color:${st.color}">${type}<span style="color:${c}">${p}%</span></div><div class="disc-bar-bg"><div class="disc-bar-fill" style="width:${p}%;background:${c}"></div></div></div></div>`;}).join('')}</div>
+    <div class="phase-prog-card fade-in"><div class="phase-prog-title">Phase Progress</div>${phases.map(ph=>{const p=phasePct(ph.id),c=rcol(p);return`<div class="phase-prog-row"><div class="phase-prog-name" style="color:${ph.color}">${ph.name}</div><div class="phase-prog-bg"><div class="phase-prog-fill" style="width:${p}%;background:${c}"></div></div><div class="phase-prog-pct" style="color:${c}">${p}%</div></div>`;}).join('')}</div>
+    <div class="log-card fade-in"><div class="log-title">Week Completion Map</div><div class="log-grid">${weeks.map((w,wi)=>{const p=wkPct(wi),ph=phases[w.phase];let bg,c;if(p===100){bg='#052e16';c='#34d399';}else if(p>0){bg='#1e293b';c=ph.color;}else{bg='var(--surface)';c='#334155';}return`<div class="log-cell" style="background:${bg};color:${c};border:1px solid ${p>0?ph.color+'40':'var(--border)'}" onclick="selectWeek(${w.week});switchTab('plan')">${w.week}</div>`;}).join('')}</div><div style="font-size:9px;color:var(--muted);margin-top:7px">Tap any week to view its plan.</div></div>`;
+}
+
+// ═══ RENDER: GUIDE ════════════════════════════════════════════════
+function renderGuide(){
+  const dist=DIST[profile?.distance]||DIST['70.3'];
+  const goal=profile?.goal||'finish';
+  const rows=dist.bkdn(goal);
+  document.getElementById('guideWrap').innerHTML=`
+    <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">🎒</div><div class="guide-sec-title">What You Need</div></div>
+    <div class="gear-grid">${[['🥽','Goggles'],['🦺','Wetsuit'],['🚴','Tri / Road Bike'],['⛑️','Helmet (mandatory)'],['👟','Running Shoes'],['🧴','Sunscreen'],['🍌','Race Nutrition'],['💧','Hydration Bottles']].map(([i,t])=>`<div class="gear-item"><span style="font-size:14px">${i}</span>${t}</div>`).join('')}</div></div>
+    <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">📋</div><div class="guide-sec-title">Before You Train</div></div><div class="guide-items">
+      <div class="guide-item"><div class="guide-dot" style="background:#38bdf8"></div><div class="guide-txt"><strong>Get medical clearance</strong> if you're new to endurance sport or have health concerns.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#38bdf8"></div><div class="guide-txt"><strong>Learn your Zone 2</strong> — the pace where you can hold a full conversation the whole time.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#38bdf8"></div><div class="guide-txt"><strong>Log every session</strong> in this app. Accountability is half the work.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#38bdf8"></div><div class="guide-txt"><strong>Start practising race nutrition from Week 5.</strong> Train your gut — race day is too late.</div></div>
+    </div></div>
+    <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">⚡</div><div class="guide-sec-title">During Training</div></div><div class="guide-items">
+      <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Never skip recovery weeks.</strong> Adaptation happens when you rest — not when you train.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Substitute, don't cancel.</strong> Can't do a session? Ask the Coach tab — it'll find an equivalent.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Sleep 8+ hours</strong> in peak weeks. More gains happen in bed than in the pool.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Never skip brick runs.</strong> Running off the bike is a skill — it only gets easier if you train it.</div></div>
+    </div></div>
+    <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">🏁</div><div class="guide-sec-title">Race Day</div></div><div class="guide-items">
+      <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>T1 bag:</strong> wetsuit, goggles, bike shoes, helmet, sunscreen, race number.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>T2 bag:</strong> running shoes, race belt, visor, extra fuel.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>Swim:</strong> seed honestly. Sight every 6–8 strokes. Start easy — the panic fades.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>Bike:</strong> eat within 15 min of mounting. Hold back the first 40% — you'll pass people on the run.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>Run:</strong> first portion should feel easy. Walk aid stations if needed. Negative split if possible.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>Finish chute:</strong> run every single step. Soak it all in. 🏁</div></div>
+    </div></div>
+    <div class="bkdn-card fade-in"><div class="bkdn-title">🎯 ${goalLabels[goal]||'Goal'} Breakdown — ${dist.label}</div>${rows.map(r=>`<div class="bkdn-row"><div class="bkdn-leg" style="color:${r.c}">${r.l}</div><div class="bkdn-r"><div class="bkdn-t">${r.t}</div>${r.p?`<div class="bkdn-p">${r.p}</div>`:''}</div></div>`).join('')}</div>`;
+}
+
+// ═══ COACH ════════════════════════════════════════════════════════
+const quickPrompts=["Can I swap today's run for kickboxing?","I did yoga instead of rest — does that count?","I missed a session this week. Now what?","What should I focus on this week?","How do I fuel my long ride?","I'm feeling tired — should I rest?","How do I pace my race?"];
+function renderQuickPrompts(){
+  const row=document.getElementById('quickRow');row.innerHTML='';
+  quickPrompts.forEach(p=>{const c=document.createElement('button');c.className='quick-chip';c.textContent=p;c.onclick=()=>{document.getElementById('chatInput').value=p;sendMsg();};row.appendChild(c);});
+}
+function openSub(wi,di,si){
+  const w=weeks[wi],d=w.days[di],s=d.sessions[si];
+  switchTab('coach');
+  setTimeout(()=>{document.getElementById('chatInput').value=`I want to substitute my ${s.type} session (${s.detail}) on ${d.day} of Week ${w.week}. What can I replace it with?`;},200);
+}
+function buildCoachPrompt(){
+  const wi=curWeek-1,w=weeks[wi],ph=phases[w.phase];
+  const pending=[],done=[];
+  w.days.forEach((d,di)=>d.sessions.forEach((s,si)=>{(isDone(wi,di,si)?done:pending).push(`${d.day}: ${s.type} — ${s.detail}`);}));
+  const sm=[];w.days.forEach((d,di)=>d.sessions.forEach((s,si)=>sm.push(`[${wi}:${di}:${si}] ${d.day} ${s.type}: ${s.detail}`)));
+  const dist=DIST[profile?.distance]||DIST['70.3'];
+  const fm={beginner:'Fresh Start',some:'Some Base',solid:'Solid Base',experienced:'Experienced'};
+  return`You are an expert triathlon coach in TriCoach. Athlete profile:
+- Name: ${profile?.name||'Athlete'}
+- Race: ${profile?.raceName||'My Race'} on ${fmtDate(profile?.raceDate)}
+- Training starts: ${fmtDate(profile?.startDate)} · ${weeks.length}-week plan
+- Distance: ${dist.label} (${dist.swim} swim / ${dist.bike} bike / ${dist.run} run)
+- Fitness: ${fm[profile?.fitness]||'Solid Base'}  Weekly hours: ${profile?.hours||'8-10'} hrs
+- Goal: ${goalLabels[profile?.goal]||'Finish'}
+
+WEEK ${w.week} of ${weeks.length} (${weekDates(w.week)}) — ${ph.name}
+Focus: ${w.focus}
+Swim goal: ${w.goals.swim} | Bike goal: ${w.goals.bike} | Run goal: ${w.goals.run}
+Done: ${done.length?done.join(', '):'None yet'} | Pending: ${pending.length?pending.join(' | '):'All done 🎉'}
+
+SESSIONS:
+${sm.join('\n')}
+
+When you APPROVE a substitution, end with: ||MARK:wi:di:si||
+Keep responses under 160 words. Direct, warm, mobile-friendly.`;
+}
+async function sendMsg(){
+  const inp=document.getElementById('chatInput'),text=inp.value.trim();
+  if(!text||aiLoading)return;inp.value='';chatResize(inp);
+  addChatMsg('user',text);aiLoading=true;document.getElementById('chatSend').disabled=true;
+  const tid='ct'+Date.now();addTyping(tid);
+  chatHistory.push({role:'user',content:text});
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:buildCoachPrompt(),messages:chatHistory})});
+    const data=await res.json();removeTyping(tid);
+    const raw=data.content?.map(b=>b.text||'').join('')||'Connection issue — please try again.';
+    const marks=[...raw.matchAll(/\|\|MARK:(\d+):(\d+):(\d+)\|\|/g)];
+    const clean=raw.replace(/\|\|MARK:\d+:\d+:\d+\|\|\n?/g,'').trim();
+    chatHistory.push({role:'assistant',content:raw});addChatMsg('ai',clean,marks);
+  }catch(e){removeTyping(tid);addChatMsg('ai','Connection issue — check your internet and try again.');}
+  aiLoading=false;document.getElementById('chatSend').disabled=false;
+}
+function addChatMsg(role,text,marks=[]){
+  const msgs=document.getElementById('chatMsgs'),div=document.createElement('div');div.className=`msg ${role} fade-in`;
+  const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML=`<div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="msg-time">${now}</div>`;
+  marks.forEach(m=>{const[,wi,di,si]=[...m].slice(1).map(Number);if(isDone(wi,di,si))return;const w=weeks[wi],d=w.days[di],s=d.sessions[si];const btn=document.createElement('div');btn.className='mark-done-btn';btn.innerHTML=`<span style="font-size:18px">✅</span><div><div class="mark-done-txt">Mark as Done</div><div class="mark-done-sub">${d.day} · ${s.type} — Week ${w.week}</div></div>`;btn.onclick=()=>{markDone(wi,di,si);btn.style.opacity='.5';btn.style.pointerEvents='none';btn.querySelector('.mark-done-txt').textContent='Marked Done ✓';};div.appendChild(btn);});
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+function addTyping(id){const m=document.getElementById('chatMsgs'),d=document.createElement('div');d.className='msg ai';d.id=id;d.innerHTML='<div class="typing-bub"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div>';m.appendChild(d);m.scrollTop=m.scrollHeight;}
+function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
+function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function chatResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+
+// ═══ INIT ════════════════════════════════════════════════════════
+function initApp(){
+  loadCompleted();
+  weeks=buildPlan(profile);
+  curWeek=detectCurWeek();
+  const dist=DIST[profile.distance]||DIST['70.3'];
+  document.getElementById('hdrEye').textContent=`${profile.name}'s Training Plan`;
+  document.getElementById('hdrTitle').innerHTML=`${dist.label} <span id="hdrRace">${(profile.raceName||'').replace(/ironman|70\.3|full/gi,'').trim()||'Race'}</span>`;
+  document.getElementById('hdrRaceDate').textContent=`${fmtDate(profile.raceDate)} 🏁`;
+  document.getElementById('hdrGoal').textContent=goalLabels[profile.goal]||'Finish';
+  document.getElementById('coachTxt').textContent=`Hey ${profile.name}! Ask me about substitutions, pacing, nutrition, or race strategy. I know your personalised plan and what you've logged. 💜`;
+  const phWks={};weeks.forEach(w=>{if(!phWks[w.phase])phWks[w.phase]={min:w.week,max:w.week};else{phWks[w.phase].min=Math.min(phWks[w.phase].min,w.week);phWks[w.phase].max=Math.max(phWks[w.phase].max,w.week);}});
+  document.getElementById('phaseStrip').innerHTML=phases.map(ph=>{const r=phWks[ph.id];const wks=r?(r.min===r.max?`Wk ${r.min}`:`Wks ${r.min}–${r.max}`):'';return`<div class="phase-pill"><div class="phase-pill-name" style="color:${ph.color}">${ph.name}</div><div class="phase-pill-wks">${wks}</div></div>`;}).join('');
+  document.getElementById('app').classList.add('visible');
+  renderWkScrollers();renderPlan();
+}
+
+// ═══ BOOT ════════════════════════════════════════════════════════
+loadProfile();
+if(profile){document.getElementById('onboarding').classList.add('hidden');initApp();}
+</script>
+</body>
+</html>
