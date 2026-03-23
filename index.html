@@ -644,7 +644,7 @@ let profile=null;
 function loadProfile(){try{const s=localStorage.getItem('tricoach_profile');if(s)profile=JSON.parse(s);}catch(e){profile=null;}}
 function saveProfile(p){profile=p;try{localStorage.setItem('tricoach_profile',JSON.stringify(p));}catch(e){}}
 function resetProfile(){if(!confirm('Reset your profile? All progress will be lost.'))return;localStorage.clear();location.reload();}
-
+function openSettings(){
   if(!profile)return;
   const fm={beginner:'Fresh Start',some:'Some Base',solid:'Solid Base',experienced:'Experienced'};
   const dist=DIST[profile.distance]||DIST['70.3'];
