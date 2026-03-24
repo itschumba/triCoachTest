@@ -1,6 +1,5 @@
 exports.handler = async function(event) {
 
-  // CORS headers included on every response
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -8,7 +7,6 @@ exports.handler = async function(event) {
     'Content-Type': 'application/json',
   };
 
-  // Handle preflight OPTIONS request browsers send before POST
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers, body: '' };
   }
@@ -17,14 +15,9 @@ exports.handler = async function(event) {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
-  // Guard: make sure the env var is set
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY environment variable is not set');
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Server configuration error — API key not set' }),
-    };
+    console.error('ANTHROPIC_API_KEY not set');
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server configuration error' }) };
   }
 
   let body;
@@ -34,13 +27,20 @@ exports.handler = async function(event) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
   }
 
-  // Whitelist only the fields we need
+  // Plan generation needs up to 16k tokens; chat needs 600
+  const maxTokens = Math.min(body.max_tokens || 600, 16000);
+
   const payload = {
     model: 'claude-sonnet-4-20250514',
-    max_tokens: body.max_tokens || 600,
+    max_tokens: maxTokens,
     system: body.system,
     messages: body.messages,
   };
+
+  // Enable web search only when requested (onboarding race lookup)
+  if (body.use_search) {
+    payload.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+  }
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -60,7 +60,11 @@ exports.handler = async function(event) {
       return { statusCode: response.status, headers, body: JSON.stringify(data) };
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify(data) };
+    // Return only text blocks — strip tool_use/tool_result internals
+    const textBlocks = (data.content || []).filter(b => b.type === 'text');
+    const reply = { ...data, content: textBlocks };
+
+    return { statusCode: 200, headers, body: JSON.stringify(reply) };
 
   } catch (err) {
     console.error('Function error:', err.message);
