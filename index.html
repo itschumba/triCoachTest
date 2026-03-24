@@ -638,17 +638,66 @@ async function obSend(){
   obLoading=false;document.getElementById('ob-send-btn').disabled=false;
 }
 
+const PLAN_GEN_SYSTEM=`You are a world-class triathlon coach and exercise scientist. Generate a complete, periodised training plan as a JSON array.
+
+You have deep knowledge of: heart rate zone training, polarised training models, triathlon-specific periodisation (base/build/peak/taper), race-specific demands for every distance, brick training, open water prep, nutrition periodisation, recovery science, injury prevention, and how to peak an athlete for a specific race date.
+
+YOUR OUTPUT must be a single valid JSON array — nothing else, no markdown, no explanation, no backticks.
+Each week object must have this exact structure:
+{"week":1,"phase":0,"hours":"8 hrs","focus":"One sentence describing the week purpose","goals":{"swim":"swim goal","bike":"bike goal","run":"run goal"},"days":[{"day":"MON","sessions":[{"type":"Swim","detail":"Specific session with distances, intervals, effort levels"}]}]}
+
+RULES:
+- phase: 0=Base, 1=Build, 2=Peak, 3=Taper
+- day: MON TUE WED THU FRI SAT SUN — all 7 days every week
+- type: Swim, Bike, Run, Brick, Rest, or Strength only
+- Sessions must be specific — metres/km, minutes, zone guidance, interval structure
+- Scale volumes to athlete's weekly hours and fitness level
+- Recovery week every 3-4 hard weeks (cut volume 35-40%)
+- Taper: last 1-2 weeks, cut volume 50-60%, keep intensity sharp
+- Final Sunday: type "Brick", detail starting with "🏁 RACE DAY"
+- Apply 80/20 principle: 80% easy aerobic, 20% hard
+- Progressive overload throughout, race-pace rehearsal in peak weeks
+- Total weeks must exactly match the gap between startDate and raceDate`;
+
+async function generateAIPlan(prof){
+  const nw=planWeekCount(prof.raceDate,prof.distance,prof.startDate);
+  const dist=DIST[prof.distance]||DIST['70.3'];
+  const prompt=`Generate a ${nw}-week triathlon training plan:
+- Athlete: ${prof.name}
+- Race: ${prof.raceName} on ${prof.raceDate} (start: ${prof.startDate})
+- Distance: ${dist.label} — ${dist.swim} swim / ${dist.bike} bike / ${dist.run} run
+- Fitness: ${prof.fitness} | Hours/week: ${prof.hours} | Goal: ${goalLabels[prof.goal]||prof.goal}
+Return only the JSON array, no other text.`;
+
+  const res=await fetch('/.netlify/functions/claude',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({max_tokens:16000,use_search:false,system:PLAN_GEN_SYSTEM,messages:[{role:'user',content:prompt}]})});
+  const data=await res.json();
+  const raw=data.content?.map(b=>b.text||'').join('')||'';
+  return JSON.parse(raw.replace(/```json|```/g,'').trim());
+}
+
 function launchBuild(prof){
   document.getElementById('ob-chat').classList.add('hidden');
   document.getElementById('ob-building').classList.remove('hidden');
-  const msgs=['Personalising sessions to your profile…','Calculating week-by-week volumes…',`Setting up your ${planWeekCount(prof.raceDate,prof.distance,prof.startDate)}-week timeline…`,'Almost ready — final touches…'];
+  const nw=planWeekCount(prof.raceDate,prof.distance,prof.startDate);
+  const msgs=['Researching world-class training principles…',`Designing your ${nw}-week periodisation…`,'Calibrating sessions to your fitness and goals…','Finalising your personalised plan…'];
   let i=0;
   const sub=document.getElementById('ob-build-sub');
-  const iv=setInterval(()=>{
-    i++;
-    if(i<4){sub.textContent=msgs[i];document.getElementById('bd'+i).classList.add('active');}
-    else{clearInterval(iv);saveProfile(prof);setTimeout(()=>{document.getElementById('onboarding').classList.add('hidden');initApp();},400);}
-  },700);
+  const iv=setInterval(()=>{i=Math.min(i+1,3);sub.textContent=msgs[i];document.getElementById('bd'+i).classList.add('active');},2500);
+  saveProfile(prof);
+  generateAIPlan(prof).then(aiWeeks=>{
+    clearInterval(iv);
+    if(!Array.isArray(aiWeeks)||aiWeeks.length===0)throw new Error('Invalid plan');
+    try{localStorage.setItem('tricoach_weeks',JSON.stringify(aiWeeks));}catch(e){}
+    sub.textContent='Your plan is ready!';
+    document.getElementById('bd3').classList.add('active');
+    setTimeout(()=>{document.getElementById('onboarding').classList.add('hidden');initApp();},600);
+  }).catch(err=>{
+    clearInterval(iv);
+    console.error('AI plan failed, using local generator:',err);
+    try{localStorage.removeItem('tricoach_weeks');}catch(e){}
+    setTimeout(()=>{document.getElementById('onboarding').classList.add('hidden');initApp();},400);
+  });
 }
 
 function obKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();obSend();}}
@@ -886,7 +935,13 @@ function chatResize(el){el.style.height='auto';el.style.height=Math.min(el.scrol
 // ═══ INIT ════════════════════════════════════════════════════════
 function initApp(){
   loadCompleted();
-  weeks=buildPlan(profile);
+  // Use AI-generated plan if available, otherwise fall back to local generator
+  try{
+    const saved=localStorage.getItem('tricoach_weeks');
+    weeks=saved?JSON.parse(saved):buildPlan(profile);
+  }catch(e){
+    weeks=buildPlan(profile);
+  }
   curWeek=detectCurWeek();
   const dist=DIST[profile.distance]||DIST['70.3'];
   document.getElementById('hdrEye').textContent=`${profile.name}'s Training Plan`;
