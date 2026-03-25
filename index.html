@@ -239,6 +239,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .sett-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#f1f5f9;margin-bottom:4px;}
 .sett-detail{font-size:11px;color:var(--muted);line-height:1.7;}
 .sett-reset{width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--peak);background:transparent;color:var(--peak);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;cursor:pointer;margin-bottom:10px;}
+.sett-edit{width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--base);background:transparent;color:var(--base);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;cursor:pointer;margin-bottom:10px;}
+.sett-field{margin-bottom:14px;}
+.sett-field-label{font-size:10px;letter-spacing:.12em;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:5px;}
+.sett-field-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Barlow',sans-serif;font-size:14px;color:var(--text);outline:none;}
+.sett-field-input:focus{border-color:var(--base);}
+.sett-field-select{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Barlow',sans-serif;font-size:14px;color:var(--text);outline:none;}
+.sett-field-select:focus{border-color:var(--base);}
+.sett-regen-btn{width:100%;padding:14px;border-radius:12px;border:none;background:var(--taper);color:#0a0e1a;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;text-transform:uppercase;cursor:pointer;margin-bottom:10px;}
+.sett-back{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;cursor:pointer;margin-bottom:10px;}
 .sett-close{width:100%;padding:13px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--subtle);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;cursor:pointer;}
 
 .section{display:none;}.section.active{display:block;}
@@ -343,10 +352,46 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 <div id="settingsModal" onclick="closeSettings()">
   <div class="sett-sheet" onclick="event.stopPropagation()">
     <div class="sett-handle"></div>
-    <div class="sett-title">Your Profile</div>
-    <div class="sett-profile" id="settProfile"></div>
-    <button class="sett-reset" onclick="resetProfile()">Reset & Start Over</button>
-    <button class="sett-close" onclick="closeSettings()">Close</button>
+    <!-- Profile view -->
+    <div id="sett-view">
+      <div class="sett-title">Your Profile</div>
+      <div class="sett-profile" id="settProfile"></div>
+      <button class="sett-edit" onclick="openEditPanel()">Edit Plan Settings</button>
+      <button class="sett-reset" onclick="resetProfile()">Reset & Start Over</button>
+      <button class="sett-close" onclick="closeSettings()">Close</button>
+    </div>
+    <!-- Edit panel -->
+    <div id="sett-edit-panel" style="display:none">
+      <div class="sett-title">Edit Plan Settings</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.6">Your completed sessions will be preserved. Only the plan structure will update.</div>
+      <div class="sett-field">
+        <div class="sett-field-label">Race Name</div>
+        <input class="sett-field-input" id="edit-raceName" type="text">
+      </div>
+      <div class="sett-field">
+        <div class="sett-field-label">Race Date</div>
+        <input class="sett-field-input" id="edit-raceDate" type="date">
+      </div>
+      <div class="sett-field">
+        <div class="sett-field-label">Training Start Date</div>
+        <input class="sett-field-input" id="edit-startDate" type="date">
+      </div>
+      <div class="sett-field">
+        <div class="sett-field-label">Weekly Hours</div>
+        <select class="sett-field-select" id="edit-hours">
+          <option value="6-8">6–8 hrs</option>
+          <option value="8-10">8–10 hrs</option>
+          <option value="10-12">10–12 hrs</option>
+          <option value="12+">12+ hrs</option>
+        </select>
+      </div>
+      <div class="sett-field">
+        <div class="sett-field-label">Goal Time</div>
+        <select class="sett-field-select" id="edit-goal"></select>
+      </div>
+      <button class="sett-regen-btn" onclick="applyEditAndRegen()">Regenerate My Plan →</button>
+      <button class="sett-back" onclick="closeEditPanel()">← Back</button>
+    </div>
   </div>
 </div>
 <div id="toast"></div>
@@ -640,7 +685,7 @@ async function obSend(){
 
 const PLAN_GEN_SYSTEM=`You are a world-class triathlon coach and exercise scientist. Generate a complete, periodised training plan as a JSON array.
 
-You have deep knowledge of: heart rate zone training, polarised training models, triathlon-specific periodisation (base/build/peak/taper), race-specific demands for every distance, brick training, open water prep, nutrition periodisation, recovery science, injury prevention, and how to peak an athlete for a specific race date.
+You have deep knowledge of: heart rate zone training, polarised training models, triathlon-specific periodisation (base/build/peak/taper), race-specific demands for every distance, brick training, open water prep, nutrition periodisation, recovery science, injury prevention, functional strength for triathletes, and how to peak an athlete for a specific race date.
 
 YOUR OUTPUT must be a single valid JSON array — nothing else, no markdown, no explanation, no backticks.
 Each week object must have this exact structure:
@@ -657,7 +702,17 @@ RULES:
 - Final Sunday: type "Brick", detail starting with "🏁 RACE DAY"
 - Apply 80/20 principle: 80% easy aerobic, 20% hard
 - Progressive overload throughout, race-pace rehearsal in peak weeks
-- Total weeks must exactly match the gap between startDate and raceDate`;
+- Total weeks must exactly match the gap between startDate and raceDate
+
+STRENGTH TRAINING — mandatory, follow these rules exactly:
+- Include 1-2 Strength sessions per week in Base and Build phases
+- Drop to 1 session in Peak, none in Taper
+- Place on THU (alongside a swim) or TUE — never the day before a long ride or race sim
+- Base phase: functional stability — single-leg squats, glute bridges, dead bugs, calf raises, planks, shoulder stability. Focus: injury prevention and postural endurance
+- Build phase: add load — Romanian deadlifts, goblet squats, step-ups, lat pulldowns, hip thrusters. Focus: power transfer to swim/bike/run
+- Peak phase: maintenance only — reduce sets, keep movement quality. Focus: preserve gains without fatigue
+- Always specify sets x reps or duration for each exercise (e.g. "3x12 single-leg squats, 3x15 glute bridges, 2x60s plank")
+- Detail should read like a real session prescription, not a vague suggestion`;
 
 async function generateAIPlan(prof){
   const nw=planWeekCount(prof.raceDate,prof.distance,prof.startDate);
@@ -713,7 +768,53 @@ function openSettings(){
   const fm={beginner:'Fresh Start',some:'Some Base',solid:'Solid Base',experienced:'Experienced'};
   const dist=DIST[profile.distance]||DIST['70.3'];
   document.getElementById('settProfile').innerHTML=`<div class="sett-name">${profile.name}</div><div class="sett-detail">${profile.raceName}<br>Starts ${fmtDate(profile.startDate||profile.raceDate)} → Race ${fmtDate(profile.raceDate)}<br>${dist.label} (${dist.swim} / ${dist.bike} / ${dist.run})<br>${fm[profile.fitness]||''} · ${profile.hours} hrs/week · ${goalLabels[profile.goal]||''}<br>${weeks.length}-week plan</div>`;
+  document.getElementById('sett-view').style.display='block';
+  document.getElementById('sett-edit-panel').style.display='none';
   document.getElementById('settingsModal').classList.add('open');
+}
+function openEditPanel(){
+  // Pre-fill fields with current values
+  document.getElementById('edit-raceName').value=profile.raceName||'';
+  document.getElementById('edit-raceDate').value=profile.raceDate||'';
+  document.getElementById('edit-startDate').value=profile.startDate||'';
+  document.getElementById('edit-hours').value=profile.hours||'8-10';
+  // Build goal options for this distance
+  const dist=DIST[profile.distance]||DIST['70.3'];
+  const sel=document.getElementById('edit-goal');
+  sel.innerHTML=dist.goals.map(g=>`<option value="${g.v}"${g.v===profile.goal?' selected':''}>${g.t} — ${g.s}</option>`).join('');
+  document.getElementById('sett-view').style.display='none';
+  document.getElementById('sett-edit-panel').style.display='block';
+}
+function closeEditPanel(){
+  document.getElementById('sett-view').style.display='block';
+  document.getElementById('sett-edit-panel').style.display='none';
+}
+async function applyEditAndRegen(){
+  const btn=document.querySelector('.sett-regen-btn');
+  btn.textContent='Regenerating…';btn.disabled=true;
+  // Update profile with new values, preserve name/distance/fitness
+  const updated={
+    ...profile,
+    raceName:document.getElementById('edit-raceName').value.trim()||profile.raceName,
+    raceDate:document.getElementById('edit-raceDate').value||profile.raceDate,
+    startDate:document.getElementById('edit-startDate').value||profile.startDate,
+    hours:document.getElementById('edit-hours').value,
+    goal:document.getElementById('edit-goal').value,
+  };
+  saveProfile(updated);
+  // Regenerate plan, preserve completions
+  try{
+    const aiWeeks=await generateAIPlan(updated);
+    if(!Array.isArray(aiWeeks)||aiWeeks.length===0)throw new Error('Invalid');
+    localStorage.setItem('tricoach_weeks',JSON.stringify(aiWeeks));
+  }catch(e){
+    console.error('Regen failed, using local:',e);
+    localStorage.removeItem('tricoach_weeks');
+  }
+  closeSettings();
+  initApp();
+  showToast('✅ Plan updated!');
+  btn.textContent='Regenerate My Plan →';btn.disabled=false;
 }
 function closeSettings(){document.getElementById('settingsModal').classList.remove('open');}
 
