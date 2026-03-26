@@ -494,13 +494,13 @@ function mainDays(pi,c,v){
   const bT=isRec?'easy':phase===0?(pct>.5&&intLvl>=3?'lint':'easy'):phase===1?'int':'hint';
   const s2T=phase>=2&&!isRec?'ow':'drills';
   const thu=[{type:'Swim',detail:swimD(S2,s2T,phase,intLvl)}];
-  if(phase>=1&&!isRec&&intLvl>=2)thu.push({type:'Strength',detail:phase>=2?'30 min: deadlifts, hip bridges, planks, calf raises.':'30 min: single-leg squats, hip bridges, planks, calf raises.'});
+  if(phase<=2&&!isRec)thu.push({type:'Strength',detail:strengthD(phase,intLvl)});
   const sat=[{type:'Bike',detail:bikeD(BL||BS,isRec?'el':phase===0?'long':phase===1?'rpl':'rsim',intLvl)}];
   if(BR&&!isRec)sat.push({type:'Brick',detail:brickD(BR,phase,intLvl)});
   const sunM=RL&&!isRec?RL:Math.max(20,Math.round((RS||30)*.75));
   return[
     {day:'MON',sessions:[{type:'Swim',detail:swimD(SM,sT,phase,intLvl)}]},
-    {day:'TUE',sessions:[{type:'Run',detail:runD(RS,rT,intLvl)}]},
+    {day:'TUE',sessions:[{type:'Run',detail:runD(RS,rT,intLvl)},...(phase===0&&!isRec&&intLvl>=3?[{type:'Strength',detail:strengthD(0,intLvl)}]:[])]}  ,
     {day:'WED',sessions:[{type:'Bike',detail:bikeD(BS,bT,intLvl)}]},
     {day:'THU',sessions:thu},
     {day:'FRI',sessions:[{type:'Rest',detail:phase>=2&&!isRec&&intLvl>=3?'Full rest. Visualise tomorrow\'s race sim — kit, nutrition, pacing.':'Full rest or 20 min light yoga / foam rolling.'}]},
@@ -567,6 +567,15 @@ function brickD(mins,ph,il){
   if(ph===1)return`${mins} min at ${pace}. Simulate race-day legs.`;
   return`${mins} min at ${pace}. Race sim — exactly what the run start feels like.`;
 }
+function strengthD(phase,il){
+  if(phase===0)return il<=2
+    ?'30 min: 3×12 single-leg squats, 3×15 glute bridges, 2×60s plank, 3×20 calf raises. Stability focus — slow and controlled.'
+    :'35 min: 3×12 single-leg squats, 3×15 glute bridges, 3×45s dead bug, 3×20 calf raises, 2×30s side plank each side. Injury prevention.';
+  if(phase===1)return il<=2
+    ?'35 min: 3×10 Romanian deadlifts, 3×12 goblet squats, 3×10 step-ups each leg, 3×15 hip thrusters. Power focus.'
+    :'40 min: 4×8 Romanian deadlifts, 3×12 goblet squats, 3×10 step-ups each leg, 3×12 lat pulldowns, 3×15 hip thrusters. Load up for power transfer.';
+  return'25 min maintenance: 2×10 single-leg squats, 2×12 glute bridges, 2×15 hip thrusters, 1×60s plank. Preserve gains — no fatigue.';
+}
 function mkFocus(ph,pi,il){
   const{isRec,wip}=pi;
   if(ph===3)return'Race week. Stay sharp, stay calm. TRUST YOUR TRAINING.';
@@ -576,13 +585,14 @@ function mkFocus(ph,pi,il){
 }
 function mkGoals(ph,pi,il){
   const{isRec,wip}=pi;
-  if(ph===3)return{swim:'Last swim — loosen up, don\'t tire out.',bike:'Easy ride + 3×5 min at race pace. Sharp, not tired.',run:'Easy run + 4×1 min pickups. Then nothing until the gun.'};
-  if(isRec)return{swim:'Short and easy — maintain the feel. No volume or intensity.',bike:'Easy spins only. If it feels too easy, you\'re doing it right.',run:'Short and slow. Let the legs freshen up.'};
+  if(ph===3)return{swim:'Last swim — loosen up, don\'t tire out.',bike:'Easy ride + 3×5 min at race pace. Sharp, not tired.',run:'Easy run + 4×1 min pickups. Then nothing until the gun.',strength:'No strength this week. Rest and arrive fresh.'};
+  if(isRec)return{swim:'Short and easy — maintain the feel. No volume or intensity.',bike:'Easy spins only. If it feels too easy, you\'re doing it right.',run:'Short and slow. Let the legs freshen up.',strength:'Skip strength — full recovery only. The gains are already banked.'};
   const sg={0:['Get comfortable. Technique over distance, every time.','Build to target distance. Find your race-pace reference.','First race-pace efforts. Note the effort.','Technique week — sighting should feel automatic.'],1:['First real pace sets. Record your 100m splits.','First full race-distance swim. Time it.','Longer race-pace intervals. Race-specific endurance.','Recovery swim — maintain feel only.'],2:['Race-distance time trial. How close are you?','Longest intervals. Stay relaxed.','Drop volume. Protect energy for taper.']};
   const bg={0:['Zone 2 the whole ride. Conversation the whole time.','2-hr ride. Eating every 20 min — train the gut.','First intervals. Hard to notice, not to suffer.','Easy spins only.'],1:['First real bike intervals. Build race-pace feel.','Full race distance Saturday. Controlled, not fast.','Longer quality efforts. Sustain race pace.','Easy rides + race-pace bursts to hold sharpness.'],2:['Highest bike intensity — builds your race engine.','60 min sustained race pace in a long ride.','Short sharp race-pace hits. Shed fatigue.']};
   const rg={0:['Time on feet. Pace is irrelevant — base first.','Add strides after your run. Relaxed, quick turnover.','First gentle tempo. Short efforts to introduce intensity.','Short and easy. Too easy is exactly right.'],1:['First real tempo — comfortably hard, you can talk.','Half marathon effort intervals. Efficiency under fatigue.','Longer tempo. Mental toughness to hold hard pace.','Short and easy. Legs thank you next phase.'],2:['Intervals at goal effort. Uncomfortable is the point.','Longest run — easy first, build to race pace.','Last quality run. After this, just arrive fresh.']};
+  const strg={0:['Foundation strength. Nail the form — these patterns protect you all season.','Build consistency. Two sessions this week — treat them like swim and run.','Body-weight mastery. Quality over load, always.','Light stability work only.'],1:['Add load this week. Heavier means faster — power transfers to the bike and run.','Strength peak. Hit the rep targets and trust the work.','Dial in form under fatigue. These sessions build race-day resilience.','Maintenance only — hold what you\'ve built.'],2:['Maintenance phase. Keep the movements sharp, not heavy.','Short and crisp. Movement quality, minimal fatigue.','Last strength session. Done — rest and arrive fresh.']};
   const idx=Math.min(wip-1,sg[Math.min(ph,2)].length-1);
-  return{swim:sg[Math.min(ph,2)][idx],bike:bg[Math.min(ph,2)][idx],run:rg[Math.min(ph,2)][idx]};
+  return{swim:sg[Math.min(ph,2)][idx],bike:bg[Math.min(ph,2)][idx],run:rg[Math.min(ph,2)][idx],strength:strg[Math.min(ph,2)][Math.min(idx,strg[Math.min(ph,2)].length-1)]};
 }
 
 // ═══ ONBOARDING CHAT ══════════════════════════════════════════════
@@ -689,7 +699,7 @@ You have deep knowledge of: heart rate zone training, polarised training models,
 
 YOUR OUTPUT must be a single valid JSON array — nothing else, no markdown, no explanation, no backticks.
 Each week object must have this exact structure:
-{"week":1,"phase":0,"hours":"8 hrs","focus":"One sentence describing the week purpose","goals":{"swim":"swim goal","bike":"bike goal","run":"run goal"},"days":[{"day":"MON","sessions":[{"type":"Swim","detail":"Specific session with distances, intervals, effort levels"}]}]}
+{"week":1,"phase":0,"hours":"8 hrs","focus":"One sentence describing the week purpose","goals":{"swim":"swim goal","bike":"bike goal","run":"run goal","strength":"strength focus for the week, or omit key in taper"},"days":[{"day":"MON","sessions":[{"type":"Swim","detail":"Specific session with distances, intervals, effort levels"}]}]}
 
 RULES:
 - phase: 0=Base, 1=Build, 2=Peak, 3=Taper
@@ -917,7 +927,8 @@ function renderGoals(){
   const wi=curWeek-1,w=weeks[wi];if(!w)return;
   document.getElementById('wkCardG').innerHTML=wkCardHTML(w,wi);
   const list=document.getElementById('goalsList');list.innerHTML='';
-  [{key:'swim',label:'Swim Goal',icon:'🏊',color:'var(--swim)',bg:'var(--swim-bg)'},{key:'bike',label:'Bike Goal',icon:'🚴',color:'var(--bike)',bg:'var(--bike-bg)'},{key:'run',label:'Run Goal',icon:'🏃',color:'var(--run)',bg:'var(--run-bg)'}].forEach(g=>{
+  [{key:'swim',label:'Swim Goal',icon:'🏊',color:'var(--swim)',bg:'var(--swim-bg)'},{key:'bike',label:'Bike Goal',icon:'🚴',color:'var(--bike)',bg:'var(--bike-bg)'},{key:'run',label:'Run Goal',icon:'🏃',color:'var(--run)',bg:'var(--run-bg)'},{key:'strength',label:'Strength Goal',icon:'💪',color:'var(--str)',bg:'var(--str-bg)'}].forEach(g=>{
+    if(!w.goals[g.key])return;
     const card=document.createElement('div');card.className='goal-card fade-in';
     card.innerHTML=`<div class="goal-card-hdr" style="background:${g.bg}"><span style="font-size:16px">${g.icon}</span><div class="goal-card-hdr-title" style="color:${g.color}">${g.label}</div></div><div class="goal-card-body">${w.goals[g.key]}</div>`;
     list.appendChild(card);
@@ -956,6 +967,13 @@ function renderGuide(){
       <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Substitute, don't cancel.</strong> Can't do a session? Ask the Coach tab — it'll find an equivalent.</div></div>
       <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Sleep 8+ hours</strong> in peak weeks. More gains happen in bed than in the pool.</div></div>
       <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Never skip brick runs.</strong> Running off the bike is a skill — it only gets easier if you train it.</div></div>
+    </div></div>
+    <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">💪</div><div class="guide-sec-title">Strength Training</div></div><div class="guide-items">
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Base phase (1–2 sessions/week):</strong> Stability work — single-leg squats, glute bridges, dead bugs, calf raises, planks. Slow and controlled. Goal: injury prevention and postural endurance.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Build phase (1–2 sessions/week):</strong> Add load — Romanian deadlifts, goblet squats, step-ups, lat pulldowns, hip thrusters. Goal: transfer power to swim, bike, and run.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Peak phase (1 session/week):</strong> Maintenance only. Reduce sets, keep movement quality. Goal: preserve gains without accumulating fatigue.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Taper phase:</strong> No strength work. Rest, recover, and trust the fitness you've built.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Timing:</strong> Always schedule strength on Thursday (after your swim) or Tuesday — never the day before a long ride or race simulation.</div></div>
     </div></div>
     <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">🏁</div><div class="guide-sec-title">Race Day</div></div><div class="guide-items">
       <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>T1 bag:</strong> wetsuit, goggles, bike shoes, helmet, sunscreen, race number.</div></div>
@@ -996,7 +1014,7 @@ function buildCoachPrompt(){
 
 WEEK ${w.week} of ${weeks.length} (${weekDates(w.week)}) — ${ph.name}
 Focus: ${w.focus}
-Swim goal: ${w.goals.swim} | Bike goal: ${w.goals.bike} | Run goal: ${w.goals.run}
+Swim goal: ${w.goals.swim} | Bike goal: ${w.goals.bike} | Run goal: ${w.goals.run}${w.goals.strength?' | Strength goal: '+w.goals.strength:''}
 Done: ${done.length?done.join(', '):'None yet'} | Pending: ${pending.length?pending.join(' | '):'All done 🎉'}
 
 SESSIONS:
