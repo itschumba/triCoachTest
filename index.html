@@ -483,24 +483,24 @@ function buildWeek(num,pi,c){
   const ws=isRec?.65:(.88+pct*.24),sc=vm*ws*dm;
   const sw=b=>r100(b*sc),td=b=>b?r5(b*sc):null;
   const v={SM:sw(BS_M[phase]),S2:sw(BS_2[phase]),BS:td(BB_S[phase]),BL:td(BB_L[phase]),RS:td(BR_S[phase]),RL:td(BR_L[phase]),BR:td(BB_R[phase])};
-  const days=phase===3?taperDays(c,v):mainDays(pi,c,v);
+  const days=phase===3?taperDays(c,v):mainDays(pi,c,v,num);
   const hb=HRS[phase][vl],ha=isRec?hb*.68:hb;
   return{week:num,phase,hours:ha<10?ha.toFixed(1)+' hrs':Math.round(ha)+' hrs',focus:mkFocus(phase,pi,intLvl),goals:mkGoals(phase,pi,intLvl),days};
 }
-function mainDays(pi,c,v){
+function mainDays(pi,c,v,wn){
   const{phase,isRec,pct}=pi;const{intLvl}=c;const{SM,S2,BS,BL,RS,RL,BR}=v;
   const sT=isRec?'easy':phase===0?(pct<.4?'easy':'int'):phase===1?'int':'rsim';
   const rT=isRec?'easy':phase===0?(pct<.6||intLvl<2?'easy':'str'):phase===1?'tmp':'int';
   const bT=isRec?'easy':phase===0?(pct>.5&&intLvl>=3?'lint':'easy'):phase===1?'int':'hint';
   const s2T=phase>=2&&!isRec?'ow':'drills';
   const thu=[{type:'Swim',detail:swimD(S2,s2T,phase,intLvl)}];
-  if(phase<=2&&!isRec)thu.push({type:'Strength',detail:strengthD(phase,intLvl)});
+  if(phase<=2&&!isRec)thu.push({type:'Strength',detail:strengthD(phase,intLvl,wn)});
   const sat=[{type:'Bike',detail:bikeD(BL||BS,isRec?'el':phase===0?'long':phase===1?'rpl':'rsim',intLvl)}];
   if(BR&&!isRec)sat.push({type:'Brick',detail:brickD(BR,phase,intLvl)});
   const sunM=RL&&!isRec?RL:Math.max(20,Math.round((RS||30)*.75));
   return[
     {day:'MON',sessions:[{type:'Swim',detail:swimD(SM,sT,phase,intLvl)}]},
-    {day:'TUE',sessions:[{type:'Run',detail:runD(RS,rT,intLvl)},...(phase===0&&!isRec&&intLvl>=3?[{type:'Strength',detail:strengthD(0,intLvl)}]:[])]}  ,
+    {day:'TUE',sessions:[{type:'Run',detail:runD(RS,rT,intLvl)},...(phase===0&&!isRec&&intLvl>=3?[{type:'Strength',detail:strengthD(0,intLvl,wn+1)}]:[])]}  ,
     {day:'WED',sessions:[{type:'Bike',detail:bikeD(BS,bT,intLvl)}]},
     {day:'THU',sessions:thu},
     {day:'FRI',sessions:[{type:'Rest',detail:phase>=2&&!isRec&&intLvl>=3?'Full rest. Visualise tomorrow\'s race sim — kit, nutrition, pacing.':'Full rest or 20 min light yoga / foam rolling.'}]},
@@ -567,14 +567,58 @@ function brickD(mins,ph,il){
   if(ph===1)return`${mins} min at ${pace}. Simulate race-day legs.`;
   return`${mins} min at ${pace}. Race sim — exactly what the run start feels like.`;
 }
-function strengthD(phase,il){
-  if(phase===0)return il<=2
-    ?'30 min: 3×12 single-leg squats, 3×15 glute bridges, 2×60s plank, 3×20 calf raises. Stability focus — slow and controlled.'
-    :'35 min: 3×12 single-leg squats, 3×15 glute bridges, 3×45s dead bug, 3×20 calf raises, 2×30s side plank each side. Injury prevention.';
-  if(phase===1)return il<=2
-    ?'35 min: 3×10 Romanian deadlifts, 3×12 goblet squats, 3×10 step-ups each leg, 3×15 hip thrusters. Power focus.'
-    :'40 min: 4×8 Romanian deadlifts, 3×12 goblet squats, 3×10 step-ups each leg, 3×12 lat pulldowns, 3×15 hip thrusters. Load up for power transfer.';
-  return'25 min maintenance: 2×10 single-leg squats, 2×12 glute bridges, 2×15 hip thrusters, 1×60s plank. Preserve gains — no fatigue.';
+function strengthD(phase,il,wn){
+  const w=(wn||1)-1;
+  if(phase===0){
+    // 4 targeted sessions rotating each week: Knee, Shoulder, Hip/Core, Full-body
+    const s=[
+      // A — Knee & Quad Stability (protects the joint most stressed in run & bike)
+      il<=2
+        ?'30 min — Knee & Quad Stability: 3×15 slow step-downs (lead with the knee, not the hip), 3×15 terminal knee extensions with band, 3×20 eccentric calf raises (3-sec lower), 2×45s wall sit. Focus: knee tracking and tendon resilience.'
+        :'35 min — Knee & Quad Stability: 3×15 step-downs, 3×15 terminal knee extensions, 3×20 eccentric calf raises, 3×12 lateral step-ups, 2×45s wall sit. Healthy knees finish the run.',
+      // B — Shoulder & Rotator Cuff (swim efficiency and shoulder longevity)
+      il<=2
+        ?'30 min — Shoulder & Swim Strength: 3×15 band external rotations (elbow at 90°), 3×12 Y-T-W raises (light or no weight), 3×15 face pulls, 2×60s plank with shoulder taps. Focus: rotator cuff protection and catch power.'
+        :'35 min — Shoulder & Swim Strength: 3×15 band external rotations, 3×12 Y-T-W raises, 3×15 face pulls, 3×20 band pull-aparts, 2×60s plank with shoulder taps. Strong shoulders = faster swim all season.',
+      // C — Hip & Core Stability (bike power transfer and run posture)
+      il<=2
+        ?'30 min — Hip & Core Stability: 3×45s dead bug (lower back stays flat), 3×12 bird dogs, 3×15 clamshells with band, 3×15 glute bridges, 2×30s side plank each side. Focus: hip drive and stable bike position.'
+        :'35 min — Hip & Core Stability: 3×45s dead bug, 3×12 single-leg RDL (bodyweight), 3×15 hip thrusters, 3×15 clamshells, 2×30s side plank each side. Hips drive the bike — protect them here.',
+      // D — Full-Body Foundation (tie it all together)
+      il<=2
+        ?'30 min — Full-Body Foundation: 3×12 single-leg squats (to a chair if needed), 3×15 glute bridges, 2×60s plank, 3×20 calf raises. Quality over speed — nail the movement patterns.'
+        :'35 min — Full-Body Foundation: 3×12 single-leg squats, 3×15 hip thrusters, 3×10 step-ups each leg, 2×60s plank, 3×20 calf raises. These patterns protect you all season.'
+    ];
+    return s[w%4];
+  }
+  if(phase===1){
+    // 4 targeted sessions rotating: Lower body power, Upper body power, Knee/Ankle resilience, Functional
+    const s=[
+      // A — Lower Body Power (bike watts and run propulsion)
+      il<=2
+        ?'35 min — Lower Body Power: 3×10 Romanian deadlifts (hinge from the hips), 3×12 goblet squats (pause at bottom), 3×10 step-ups each leg, 3×15 hip thrusters. Power transfers directly to the pedals and stride.'
+        :'40 min — Lower Body Power: 4×8 Romanian deadlifts, 3×10 Bulgarian split squats each leg, 3×15 hip thrusters, 3×12 goblet squats. Build the engine that drives the bike and run.',
+      // B — Upper Body & Core Power (swim pull strength and bike hold)
+      il<=2
+        ?'35 min — Upper Body & Core Power: 3×12 lat pulldowns (engage lats, not arms), 3×12 seated row, 3×15 face pulls, 3×15 Pallof press each side. Swim pull strength and a stable position on the bike.'
+        :'40 min — Upper Body & Core Power: 3×10 lat pulldowns, 3×10 seated row, 3×10 DB shoulder press, 3×15 face pulls, 3×15 Pallof press each side. Power through the water and hold aero longer.',
+      // C — Knee & Ankle Resilience (run durability through high-volume weeks)
+      il<=2
+        ?'35 min — Knee & Ankle Resilience: 3×12 step-downs (slow eccentric), 3×15 terminal knee extensions, 3×20 single-leg calf raises (eccentric only), 3×10 lateral step-ups. Keeps the knees and ankles healthy when run volume peaks.'
+        :'40 min — Knee & Ankle Resilience: 4×12 step-downs, 3×15 terminal knee extensions, 3×20 single-leg eccentric calf raises, 3×12 lateral lunges, 3×10 single-leg RDL. Run durability is built here.',
+      // D — Functional & Explosive (race power transfer)
+      il<=2
+        ?'35 min — Functional Power: 3×12 goblet squats, 3×10 step-ups with high knee drive, 3×15 hip thrusters, 3×12 single-arm row each side. Functional patterns that carry directly into race performance.'
+        :'40 min — Functional Power: 3×10 KB swings (or jump squats), 3×10 step-ups with knee drive, 3×12 lateral lunges, 3×15 hip thrusters, 3×12 single-arm row each side. Explosive power — this is where speed comes from.'
+    ];
+    return s[w%4];
+  }
+  // Phase 2 — Peak: 2 rotating maintenance sessions (low fatigue, preserve gains)
+  const s=[
+    '25 min — Knee & Hip Maintenance: 2×10 single-leg squats, 2×12 glute bridges, 2×15 hip thrusters, 2×20 eccentric calf raises. Preserve gains — no new fatigue.',
+    '25 min — Shoulder & Core Maintenance: 2×12 band external rotations, 2×12 face pulls, 2×45s plank, 2×12 bird dogs. Keep movement quality sharp heading into race week.'
+  ];
+  return s[w%2];
 }
 function mkFocus(ph,pi,il){
   const{isRec,wip}=pi;
@@ -718,11 +762,16 @@ STRENGTH TRAINING — mandatory, follow these rules exactly:
 - Include 1-2 Strength sessions per week in Base and Build phases
 - Drop to 1 session in Peak, none in Taper
 - Place on THU (alongside a swim) or TUE — never the day before a long ride or race sim
-- Base phase: functional stability — single-leg squats, glute bridges, dead bugs, calf raises, planks, shoulder stability. Focus: injury prevention and postural endurance
-- Build phase: add load — Romanian deadlifts, goblet squats, step-ups, lat pulldowns, hip thrusters. Focus: power transfer to swim/bike/run
-- Peak phase: maintenance only — reduce sets, keep movement quality. Focus: preserve gains without fatigue
-- Always specify sets x reps or duration for each exercise (e.g. "3x12 single-leg squats, 3x15 glute bridges, 2x60s plank")
-- Detail should read like a real session prescription, not a vague suggestion`;
+- Always specify sets x reps or duration for each exercise and name the target area (e.g. "Knee & Quad Stability: 3×15 step-downs, 3×15 terminal knee extensions, 3×20 eccentric calf raises")
+- Rotate through these 4 target areas each week — do not repeat the same session two weeks in a row:
+  A) Knee & Quad Stability: step-downs, terminal knee extensions, eccentric calf raises, wall sit — protects the joint most stressed in run and bike
+  B) Shoulder & Rotator Cuff: band external rotations, Y-T-W raises, face pulls, band pull-aparts — swim efficiency and shoulder longevity
+  C) Hip & Core Stability: dead bug, bird dogs, clamshells, glute bridges, side plank — bike power transfer and run posture
+  D) Full-Body / Functional: single-leg squats, hip thrusters, step-ups, Pallof press — ties all three disciplines together
+- Base phase: bodyweight or light load — slow and controlled, injury prevention focus
+- Build phase: add load — Romanian deadlifts, goblet squats, Bulgarian split squats, lat pulldowns, KB swings for higher fitness athletes. Focus: power transfer
+- Peak phase: 2 rotating maintenance sessions only (Knee/Hip and Shoulder/Core). Reduce to 2 sets. No new fatigue.
+- Detail should read like a real session prescription with the target area named in the header`;
 
 async function generateAIPlan(prof){
   const nw=planWeekCount(prof.raceDate,prof.distance,prof.startDate);
@@ -969,11 +1018,12 @@ function renderGuide(){
       <div class="guide-item"><div class="guide-dot" style="background:#fb923c"></div><div class="guide-txt"><strong>Never skip brick runs.</strong> Running off the bike is a skill — it only gets easier if you train it.</div></div>
     </div></div>
     <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">💪</div><div class="guide-sec-title">Strength Training</div></div><div class="guide-items">
-      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Base phase (1–2 sessions/week):</strong> Stability work — single-leg squats, glute bridges, dead bugs, calf raises, planks. Slow and controlled. Goal: injury prevention and postural endurance.</div></div>
-      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Build phase (1–2 sessions/week):</strong> Add load — Romanian deadlifts, goblet squats, step-ups, lat pulldowns, hip thrusters. Goal: transfer power to swim, bike, and run.</div></div>
-      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Peak phase (1 session/week):</strong> Maintenance only. Reduce sets, keep movement quality. Goal: preserve gains without accumulating fatigue.</div></div>
-      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Taper phase:</strong> No strength work. Rest, recover, and trust the fitness you've built.</div></div>
-      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Timing:</strong> Always schedule strength on Thursday (after your swim) or Tuesday — never the day before a long ride or race simulation.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>🦵 Knee & Quad Stability</strong> — step-downs, terminal knee extensions, eccentric calf raises. The knee is the most commonly injured joint in triathlon. These keep it tracking correctly under run and bike load.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>🏊 Shoulder & Rotator Cuff</strong> — band external rotations, Y-T-W raises, face pulls. Weak rotator cuffs lead to shoulder impingement after thousands of swim strokes. These protect the joint and improve your catch.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>🍑 Hip & Core Stability</strong> — dead bug, clamshells, glute bridges, side plank. Your hips drive the bike and stabilise every run stride. Weak hips cause IT band issues, knee pain, and poor bike position.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>💥 Full-Body / Functional</strong> — single-leg squats, hip thrusters, step-ups, Pallof press. These compound patterns tie all three disciplines together and build the coordination that holds your form late in the race.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Phase rules:</strong> Base = bodyweight, slow and controlled. Build = add load for power transfer. Peak = maintenance only (2 sets, no fatigue). Taper = rest completely.</div></div>
+      <div class="guide-item"><div class="guide-dot" style="background:#d6d3d1"></div><div class="guide-txt"><strong>Timing:</strong> Strength goes on Thursday (after your swim) or Tuesday — never the day before a long ride or race simulation.</div></div>
     </div></div>
     <div class="guide-sec fade-in"><div class="guide-sec-hdr"><div class="guide-sec-icon">🏁</div><div class="guide-sec-title">Race Day</div></div><div class="guide-items">
       <div class="guide-item"><div class="guide-dot" style="background:#34d399"></div><div class="guide-txt"><strong>T1 bag:</strong> wetsuit, goggles, bike shoes, helmet, sunscreen, race number.</div></div>
